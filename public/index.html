@@ -40,10 +40,12 @@
 
     <div id="game-screen" style="display:none;">
         <div class="header">
+            <div id="room-display">CODE: ----</div>
+            
             <div class="reserve-timer blue-res">Reserve: <span id="blue-res">5:00</span></div>
             <div id="timer">60</div>
             <div class="reserve-timer red-res">Reserve: <span id="red-res">5:00</span></div>
-            <div id="status">Waiting for opponent...</div>
+            <div id="status">Waiting...</div>
         </div>
 
         <div class="draft-area">
@@ -69,7 +71,7 @@
         </div>
 
         <div class="controls-area">
-            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>CONFIRM PICK</button>
+            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>Select</button>
         </div>
 
         <div class="char-pool" id="char-pool-container"></div>
@@ -115,6 +117,10 @@
             myRole = data.role;
             currentRoom = data.roomId;
             charsData = data.chars;
+            
+            // ОТОБРАЖАЕМ КОД КОМНАТЫ
+            document.getElementById('room-display').innerText = `CODE: ${currentRoom}`;
+            
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
             renderRows();
@@ -251,7 +257,7 @@
             } else if (isGameOver) {
                 statusText = "DRAFT COMPLETED";
             } else {
-                statusText = `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
+                statusText = `${team} IS ${act} (Turn ${state.stepIndex})`; // Убрали room code отсюда, так как он теперь отдельно
             }
             document.getElementById('status').innerText = statusText;
 
