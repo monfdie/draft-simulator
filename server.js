@@ -187,14 +187,16 @@ io.on('connection', (socket) => {
     socket.on('create_game', (nickname) => {
         const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
         sessions[roomId] = {
-            id: roomId, bluePlayer: socket.id, redPlayer: null,
-            blueName: nickname || 'Player 1', redName: 'Waiting...',
-            stepIndex: 0, 
-            currentTeam: 'blue', currentAction: 'ban',
-            timer: 60, timerInterval: null,
-            bans: [], 
-            bluePicks: [], redPicks: []
-        };
+    // ... старые поля ...
+    stepIndex: 0, 
+    currentTeam: 'blue', currentAction: 'ban',
+    timer: 60, 
+    blueReserve: 300, // <--- Добавлено: 5 минут (300 сек)
+    redReserve: 300,  // <--- Добавлено: 5 минут (300 сек)
+    timerInterval: null,
+    bans: [], 
+    bluePicks: [], redPicks: []
+};
         socket.join(roomId);
         socket.emit('init_game', { 
             roomId, role: 'blue', 
@@ -304,3 +306,4 @@ function getPublicState(session) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server started on :${PORT}`));
+
