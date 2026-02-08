@@ -126,7 +126,6 @@
             const isSpec = document.getElementById('spectator-check').checked;
             
             if(!nick || !room) return alert("Please enter a nickname and room code!");
-            // Отправляем флаг asSpectator
             socket.emit('join_game', {roomId: room, nickname: nick, asSpectator: isSpec}); 
         }
 
@@ -185,7 +184,6 @@
         });
 
         function toggleReady(role) {
-            // Зрители не могут жать Ready
             if (myRole === 'spectator') return;
             if (myRole !== role) return;
             if (isGameStarted) return;
@@ -231,7 +229,6 @@
             
             el.onclick = () => {
                 if (!isGameStarted) return;
-                // Зрители не могут выбирать
                 if (myRole === 'spectator') return;
                 
                 document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
@@ -286,11 +283,11 @@
             } else if (isGameOver) {
                 statusText = "DRAFT COMPLETED";
             } else {
-                statusText = `${team} IS ${act} (Turn ${state.stepIndex})`;
+                // ИЗМЕНЕНИЕ ЗДЕСЬ: Убрано отображение номера хода (Turn X)
+                statusText = `${team} IS ${act}`;
             }
             document.getElementById('status').innerText = statusText;
 
-            // Если я зритель, прячем кнопку подтверждения
             if (myRole === 'spectator') {
                  document.getElementById('confirm-btn').style.display = 'none';
             }
