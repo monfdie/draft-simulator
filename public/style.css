@@ -3,7 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Segoe+UI&display=swap');
 
 body { 
-    background: radial-gradient(circle at center, #2b304d 0%, #181b2a 100%);
+    background: radial-gradient(circle at center, #1b2038 0%, #0d101a 100%); /* Более темный фон */
     color: #ece5d8;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     margin: 0; 
@@ -12,50 +12,159 @@ body {
     user-select: none;
 }
 
+/* --- LOBBY STYLES (NEW) --- */
 #lobby-screen { 
-    text-align: center; 
-    padding-top: 150px; 
-    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(5px); /* Эффект размытия сзади */
 }
 
-h1 {
-    font-family: 'Cinzel', serif;
-    color: #d4af37;
-    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
-    font-size: 3em;
-    margin-bottom: 40px;
+/* Карточка в стиле хай-тек/геншин интерфейса */
+.lobby-card {
+    background: rgba(22, 28, 48, 0.95);
+    border: 1px solid #3c4566;
+    border-top: 2px solid #4facfe; /* Яркий верх */
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(79, 172, 254, 0.05);
+    padding: 40px;
+    width: 350px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    position: relative;
 }
 
-input { 
-    padding: 12px 20px; 
-    font-size: 1.2em; 
-    border-radius: 20px; 
-    border: 2px solid #4a506b; 
-    background: #353b53; 
-    color: white; 
-    text-align: center; 
+/* Декоративные уголки */
+.lobby-card::before {
+    content: '';
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 20px; height: 20px;
+    border-bottom: 2px solid #4facfe;
+    border-right: 2px solid #4facfe;
+}
+
+.lobby-card h1 {
+    margin: 0 0 20px 0;
+    font-size: 2.2em;
+    color: #fff;
+    text-shadow: 0 0 10px #4facfe;
+    text-align: center;
+}
+
+/* Группировка инпутов */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.input-group label {
+    font-size: 0.8em;
+    color: #8da4c4;
+    margin-bottom: 5px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+/* Стиль инпутов и селектов - ПРЯМЫЕ УГЛЫ, СИНИЙ ФОН */
+input, select { 
+    padding: 12px; 
+    font-size: 1em; 
+    border-radius: 0; /* Убрали скругление */
+    border: 1px solid #3c4566; 
+    background: #0f131f; 
+    color: #4facfe; 
     outline: none;
     transition: 0.3s;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
 }
-input:focus { border-color: #d4af37; box-shadow: 0 0 10px #d4af37; }
 
+input:focus, select:focus { 
+    border-color: #4facfe; 
+    box-shadow: 0 0 10px rgba(79, 172, 254, 0.3); 
+    background: #141a2b;
+}
+
+input::placeholder { color: #3c4566; }
+
+/* Кастомная стрелка для select */
+select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234facfe%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+    background-repeat: no-repeat;
+    background-position: right 1em top 50%;
+    background-size: .65em auto;
+}
+
+/* Кнопки - ПРЯМЫЕ УГЛЫ */
 button { 
-    padding: 12px 40px; 
-    font-size: 1.2em; 
+    padding: 12px; 
+    font-size: 1.1em; 
     cursor: pointer; 
-    border: 2px solid #d4af37; 
-    border-radius: 25px; 
-    background: linear-gradient(180deg, #ece5d8 0%, #d4af37 100%); 
-    color: #333; 
+    border: 1px solid transparent; 
+    border-radius: 0; /* Убрали скругление */
+    color: #fff; 
     font-weight: bold;
-    margin: 10px; 
+    margin: 5px 0; 
     transition: 0.2s;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
-button:hover { transform: scale(1.05); filter: brightness(1.1); }
-button:active { transform: scale(0.95); }
 
+.btn-primary {
+    background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+    border: 1px solid #4facfe;
+    box-shadow: 0 0 10px rgba(79, 172, 254, 0.2);
+}
+
+.btn-primary:hover {
+    background: #4facfe;
+    color: #000;
+    box-shadow: 0 0 20px #4facfe;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+}
+
+.btn-secondary:hover {
+    background: #ff6b6b;
+    color: #fff;
+    box-shadow: 0 0 20px #ff6b6b;
+}
+
+/* Разделитель */
+.separator {
+    text-align: center;
+    margin: 5px 0;
+    position: relative;
+}
+.separator span {
+    background: #161c30;
+    padding: 0 10px;
+    color: #555;
+    font-size: 0.8em;
+    position: relative;
+    z-index: 1;
+}
+.separator::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 0; right: 0;
+    height: 1px;
+    background: #3c4566;
+    z-index: 0;
+}
+
+/* --- GAME SCREEN STYLES (UNCHANGED MOSTLY) --- */
 #game-screen { display: flex; flex-direction: column; height: 100%; }
 
 .header { 
