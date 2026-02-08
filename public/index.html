@@ -19,7 +19,7 @@
             <div class="input-group">
                 <label>DRAFT MODE</label>
                 <select id="draft-type-select">
-                    <option value="gitcg">GITCG CUP </option>
+                    <option value="gitcg">GITCG CUP (Standard)</option>
                     <option value="classic">Classic (2 Bans / 3 Picks)</option>
                 </select>
             </div>
@@ -47,18 +47,28 @@
 
         <div class="draft-area">
             <div class="team-side blue-side">
-                <h2 id="blue-name-display">PLAYER 1</h2>
+                <div class="player-header">
+                    <h2 id="blue-name-display">PLAYER 1</h2>
+                    <button id="blue-ready-btn" class="ready-btn" onclick="toggleReady('blue')">READY</button>
+                </div>
                 <div class="ban-row" id="blue-bans"></div>
                 <div class="pick-row" id="blue-picks-1"></div>
                 <div class="pick-row-small" id="blue-picks-2"></div>
             </div>
 
             <div class="team-side red-side">
-                <h2 id="red-name-display">PLAYER 2</h2>
+                <div class="player-header">
+                    <h2 id="red-name-display">PLAYER 2</h2>
+                    <button id="red-ready-btn" class="ready-btn" onclick="toggleReady('red')">READY</button>
+                </div>
                 <div class="ban-row" id="red-bans"></div>
                 <div class="pick-row" id="red-picks-1"></div>
                 <div class="pick-row-small" id="red-picks-2"></div>
             </div>
+        </div>
+
+        <div class="controls-area">
+            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>SELECT</button>
         </div>
 
         <div class="char-pool" id="char-pool-container"></div>
@@ -69,8 +79,11 @@
         let myRole = '';
         let currentRoom = '';
         let charsData = {};
+        
+        // Локальное состояние для выбора
+        let selectedCharId = null; 
+        let isGameStarted = false;
 
-        // Настройки шагов
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
             redBan: [3, 4, 11, 19, 23],
@@ -88,7 +101,6 @@
         function createGame() { 
             const nick = document.getElementById('nickname-input').value;
             const type = document.getElementById('draft-type-select').value;
-            
             if(!nick) return alert("Please enter a nickname!");
             socket.emit('create_game', { nickname: nick, draftType: type }); 
         }
@@ -112,6 +124,11 @@
 
         socket.on('update_state', updateUI);
         
+        socket.on('game_started', () => {
+            isGameStarted = true;
+            document.getElementById('status').innerText = "DRAFT STARTED!";
+        });
+
         socket.on('game_over', (state) => {
             updateUI(state);
             setTimeout(() => alert("Draft Completed!"), 500);
@@ -142,6 +159,12 @@
                 }
             }
         });
+
+        function toggleReady(role) {
+            // Разрешаем нажимать только свою кнопку
+            if (myRole !== role) return;
+            socket.emit('player_ready', currentRoom);
+        }
 
         function renderRows() {
             const container = document.getElementById('char-pool-container');
@@ -179,22 +202,65 @@
             el.className = 'char-option';
             el.id = `char-${char.id}`;
             el.innerHTML = `<img src="${char.img}">`;
-            el.onclick = () => socket.emit('action', { roomId: currentRoom, charId: char.id });
+            
+            // НОВАЯ ЛОГИКА: Просто выделяем, не отправляем
+            el.onclick = () => {
+                if (!isGameStarted) return; // Нельзя выбирать до старта
+                
+                // Убираем выделение со старого
+                document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
+                
+                selectedCharId = char.id;
+                el.classList.add('selected-pending');
+                
+                // Активируем кнопку Confirm
+                document.getElementById('confirm-btn').disabled = false;
+            };
             return el;
         }
 
+        // ОТПРАВКА НА СЕРВЕР ТОЛЬКО ЗДЕСЬ
+        function confirmSelection() {
+            if (selectedCharId && currentRoom) {
+                socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
+                selectedCharId = null; // Сброс
+                document.getElementById('confirm-btn').disabled = true;
+                document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
+            }
+        }
+
         function updateUI(state) {
+            isGameStarted = state.gameStarted;
+            
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
+
+            // Обновление кнопок Ready
+            const btnBlue = document.getElementById('blue-ready-btn');
+            const btnRed = document.getElementById('red-ready-btn');
             
+            if (state.ready.blue) {
+                btnBlue.classList.add('ready-active');
+                btnBlue.innerText = "READY!";
+            }
+            if (state.ready.red) {
+                btnRed.classList.add('ready-active');
+                btnRed.innerText = "READY!";
+            }
+
+            // Статус
             const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
             const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
-            
             const isGameOver = (state.stepIndex > (state.draftType === 'classic' ? 10 : 28));
-            const statusText = isGameOver 
-                ? "DRAFT COMPLETED" 
-                : `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
-                
+            
+            let statusText = "";
+            if (!state.gameStarted) {
+                statusText = "WAITING FOR PLAYERS TO READY UP...";
+            } else if (isGameOver) {
+                statusText = "DRAFT COMPLETED";
+            } else {
+                statusText = `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
+            }
             document.getElementById('status').innerText = statusText;
 
             renderSlots(state);
