@@ -8,21 +8,23 @@
 </head>
 <body>
     <div id="lobby-screen">
-        <h1>Genshin Draft</h1>
-        <input id="nickname-input" placeholder="Твой Никнейм" maxlength="15">
-        <br><br>
-        <button onclick="createGame()">Создать (Blue)</button>
-        <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
-            <input id="room-input" placeholder="Код комнаты">
-            <button onclick="joinGame()">Войти (Red)</button>
-        </div>
+    <h1>Genshin Draft</h1>
+    <input id="nickname-input" placeholder="Your Nickname" maxlength="15">
+    <br><br>
+    <button onclick="createGame()">Create (Blue)</button>
+    <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
+        <input id="room-input" placeholder="Room Code">
+        <button onclick="joinGame()">Join (Red)</button>
     </div>
+</div>
 
-    <div id="game-screen" style="display:none;">
-        <div class="header">
-            <div id="timer">60</div>
-            <div id="status">Ожидание...</div>
-        </div>
+<div id="game-screen" style="display:none;">
+    <div class="header">
+        <div style="color: #4facfe; font-size: 14px;">Blue Reserve: <span id="blue-res">5:00</span></div>
+        <div id="timer">60</div>
+        <div style="color: #ff6b6b; font-size: 14px;">Red Reserve: <span id="red-res">5:00</span></div>
+        <div id="status">Waiting...</div>
+    </div>
 
         <div class="draft-area">
             <div class="team-side blue-side">
@@ -56,7 +58,7 @@
 
         function createGame() { 
             const nick = document.getElementById('nickname-input').value;
-            if(!nick) return alert("Введите ник!");
+            if(!nick) return alert("Nickname!");
             socket.emit('create_game', nick); 
         }
 
