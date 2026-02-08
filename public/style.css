@@ -1,413 +1,373 @@
-/* G E N S H I N   S T Y L E   C S S */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Genshin Draft</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div id="lobby-screen">
+        <div class="lobby-card">
+            <h1>Genshin Draft</h1>
+            
+            <div class="input-group">
+                <label>NICKNAME</label>
+                <input id="nickname-input" placeholder="Enter Name" maxlength="15">
+            </div>
+            
+            <div class="input-group">
+                <label>DRAFT MODE</label>
+                <select id="draft-type-select">
+                    <option value="gitcg">GITCG CUP (Standard)</option>
+                    <option value="classic">Classic (2 Bans / 3 Picks)</option>
+                </select>
+            </div>
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Segoe+UI&display=swap');
+            <button class="btn-primary" onclick="createGame()">Create Game (Blue)</button>
+            
+            <div class="separator">
+                <span>OR</span>
+            </div>
 
-body { 
-    background: radial-gradient(circle at center, #1b2038 0%, #0d101a 100%);
-    color: #ece5d8;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    margin: 0; 
-    height: 100vh;
-    overflow: hidden;
-    user-select: none;
-}
+            <div class="input-group">
+                <label>ROOM CODE (TO JOIN)</label>
+                <input id="room-input" placeholder="Enter Code">
+            </div>
+            <button class="btn-secondary" onclick="joinGame()">Join Game (Red)</button>
+        </div>
+    </div>
 
-/* LOBBY STYLES */
-#lobby-screen { 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(5px);
-}
+    <div id="game-screen" style="display:none;">
+        <div class="header">
+            <div id="room-display" onclick="copyToClipboard()" title="Click to copy code">
+                CODE: ----
+            </div>
+            
+            <div class="reserve-timer blue-res">Reserve: <span id="blue-res">5:00</span></div>
+            <div id="timer">60</div>
+            <div class="reserve-timer red-res">Reserve: <span id="red-res">5:00</span></div>
+            <div id="status">Waiting...</div>
+        </div>
 
-.lobby-card {
-    background: rgba(22, 28, 48, 0.95);
-    border: 1px solid #3c4566;
-    border-top: 2px solid #4facfe;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(79, 172, 254, 0.05);
-    padding: 40px;
-    width: 350px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    position: relative;
-}
+        <div class="draft-area">
+            <div class="team-side blue-side">
+                <div class="player-header">
+                    <h2 id="blue-name-display">PLAYER 1</h2>
+                    <div id="blue-ready-switch" class="ready-switch" onclick="toggleReady('blue')">
+                        <div class="switch-circle"></div>
+                    </div>
+                </div>
+                <div class="ban-row" id="blue-bans"></div>
+                <div class="pick-row" id="blue-picks-1"></div>
+                <div class="pick-row-small" id="blue-picks-2"></div>
+            </div>
 
-.lobby-card::before {
-    content: '';
-    position: absolute;
-    bottom: -1px; right: -1px;
-    width: 20px; height: 20px;
-    border-bottom: 2px solid #4facfe;
-    border-right: 2px solid #4facfe;
-}
+            <div class="team-side red-side">
+                <div class="player-header">
+                    <h2 id="red-name-display">PLAYER 2</h2>
+                    <div id="red-ready-switch" class="ready-switch" onclick="toggleReady('red')">
+                        <div class="switch-circle"></div>
+                    </div>
+                </div>
+                <div class="ban-row" id="red-bans"></div>
+                <div class="pick-row" id="red-picks-1"></div>
+                <div class="pick-row-small" id="red-picks-2"></div>
+            </div>
+        </div>
 
-.lobby-card h1 {
-    margin: 0 0 20px 0;
-    font-size: 2.2em;
-    color: #fff;
-    text-shadow: 0 0 10px #4facfe;
-    text-align: center;
-}
+        <div class="controls-area">
+            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>Select</button>
+        </div>
 
-.input-group {
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-}
+        <div class="char-pool" id="char-pool-container"></div>
+    </div>
 
-.input-group label {
-    font-size: 0.8em;
-    color: #8da4c4;
-    margin-bottom: 5px;
-    font-weight: bold;
-    letter-spacing: 1px;
-}
+    <script>
+        const socket = io();
+        let myRole = '';
+        let currentRoom = '';
+        let charsData = {};
+        let selectedCharId = null; 
+        let isGameStarted = false;
+        let lastState = null;
 
-input, select { 
-    padding: 12px; 
-    font-size: 1em; 
-    border-radius: 0; 
-    border: 1px solid #3c4566; 
-    background: #0f131f; 
-    color: #4facfe; 
-    outline: none;
-    transition: 0.3s;
-    width: 100%;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', sans-serif;
-}
+        const STEPS_GITCG = {
+            blueBan: [1, 2, 5, 13, 21],
+            redBan: [3, 4, 11, 19, 23],
+            bluePick: [6, 9, 10, 14, 17, 18, 22, 25, 26],
+            redPick: [7, 8, 12, 15, 16, 20, 24, 27, 28]
+        };
 
-input:focus, select:focus { 
-    border-color: #4facfe; 
-    box-shadow: 0 0 10px rgba(79, 172, 254, 0.3); 
-    background: #141a2b;
-}
+        const STEPS_CLASSIC = {
+            blueBan: [1, 4],
+            redBan: [2, 6],
+            bluePick: [5, 8, 9],
+            redPick: [3, 7, 10]
+        };
 
-input::placeholder { color: #3c4566; }
+        function createGame() { 
+            const nick = document.getElementById('nickname-input').value;
+            const type = document.getElementById('draft-type-select').value;
+            if(!nick) return alert("Please enter a nickname!");
+            socket.emit('create_game', { nickname: nick, draftType: type }); 
+        }
 
-select {
-    cursor: pointer;
-    appearance: none;
-    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%234facfe%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
-    background-repeat: no-repeat;
-    background-position: right 1em top 50%;
-    background-size: .65em auto;
-}
+        function joinGame() { 
+            const nick = document.getElementById('nickname-input').value;
+            const room = document.getElementById('room-input').value;
+            if(!nick || !room) return alert("Please enter a nickname and room code!");
+            socket.emit('join_game', {roomId: room, nickname: nick}); 
+        }
 
-button { 
-    padding: 12px; 
-    font-size: 1.1em; 
-    cursor: pointer; 
-    border: 1px solid transparent; 
-    border-radius: 0;
-    color: #fff; 
-    font-weight: bold;
-    margin: 5px 0; 
-    transition: 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
+        socket.on('init_game', (data) => {
+            myRole = data.role;
+            currentRoom = data.roomId;
+            charsData = data.chars;
+            
+            // Вставляем код и иконку
+            document.getElementById('room-display').innerHTML = `
+                CODE: <span style="color: white; font-weight: bold; margin-left: 5px;">${currentRoom}</span>
+                <svg class="copy-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            `;
+            
+            document.getElementById('lobby-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            renderRows();
+            updateUI(data.state);
+        });
 
-.btn-primary {
-    background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
-    border: 1px solid #4facfe;
-    box-shadow: 0 0 10px rgba(79, 172, 254, 0.2);
-}
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ КОПИРОВАНИЯ
+        function copyToClipboard() {
+            if(!currentRoom) return;
 
-.btn-primary:hover {
-    background: #4facfe;
-    color: #000;
-    box-shadow: 0 0 20px #4facfe;
-}
+            const animateSuccess = () => {
+                const el = document.getElementById('room-display');
+                el.classList.add('copied-success');
+                setTimeout(() => el.classList.remove('copied-success'), 800);
+            };
 
-.btn-secondary {
-    background: transparent;
-    border: 1px solid #ff6b6b;
-    color: #ff6b6b;
-}
+            // Метод 1: Современный API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(currentRoom)
+                    .then(animateSuccess)
+                    .catch(err => console.error(err));
+            } else {
+                // Метод 2: Старый надежный способ (для http)
+                const textArea = document.createElement("textarea");
+                textArea.value = currentRoom;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    animateSuccess();
+                } catch (err) {
+                    console.error('Copy failed', err);
+                    alert("Code: " + currentRoom);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
 
-.btn-secondary:hover {
-    background: #ff6b6b;
-    color: #fff;
-    box-shadow: 0 0 20px #ff6b6b;
-}
+        socket.on('update_state', (state) => {
+            lastState = state;
+            updateUI(state);
+        });
+        
+        socket.on('game_started', () => {
+            isGameStarted = true;
+            document.getElementById('blue-ready-switch').style.display = 'none';
+            document.getElementById('red-ready-switch').style.display = 'none';
+            document.getElementById('status').innerText = "DRAFT STARTED!";
+            if (lastState) updateUI(lastState);
+        });
 
-.separator {
-    text-align: center;
-    margin: 5px 0;
-    position: relative;
-}
-.separator span {
-    background: #161c30;
-    padding: 0 10px;
-    color: #555;
-    font-size: 0.8em;
-    position: relative;
-    z-index: 1;
-}
-.separator::before {
-    content: '';
-    position: absolute;
-    top: 50%; left: 0; right: 0;
-    height: 1px;
-    background: #3c4566;
-    z-index: 0;
-}
+        socket.on('game_over', (state) => {
+            updateUI(state);
+            setTimeout(() => alert("Draft Completed!"), 500);
+        });
 
-/* GAME SCREEN */
-#game-screen { display: flex; flex-direction: column; height: 100%; }
+        function formatTime(s) {
+            if (s < 0) s = 0;
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+        }
 
-.header { 
-    height: 6vh; 
-    display: flex; gap: 30px;
-    align-items: center; justify-content: center; 
-    background: rgba(20, 24, 40, 0.9); 
-    border-bottom: 3px solid #020c1b; 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-    z-index: 10;
-}
-#timer { font-size: 28px; color: #ff5555; font-weight: bold; text-shadow: 2px 2px 0 #000; font-family: 'Cinzel', serif; transition: all 0.3s; }
-.reserve-timer { font-size: 14px; font-weight: bold; }
-.blue-res { color: #4facfe; }
-.red-res { color: #ff6b6b; }
-#status { font-size: 18px; color: #ece5d8; text-transform: uppercase; letter-spacing: 1px; }
+        socket.on('timer_tick', (data) => {
+            const mainTime = typeof data === 'object' ? data.main : data;
+            document.getElementById('timer').innerText = mainTime;
+            
+            if (typeof data === 'object') {
+                document.getElementById('blue-res').innerText = formatTime(data.blueReserve);
+                document.getElementById('red-res').innerText = formatTime(data.redReserve);
+                
+                const timerEl = document.getElementById('timer');
+                if (mainTime === 0) {
+                     timerEl.style.color = '#777';
+                     timerEl.style.fontSize = '20px';
+                } else {
+                     timerEl.style.color = '#ff5555';
+                     timerEl.style.fontSize = '28px';
+                }
+            }
+        });
 
-#room-display {
-    position: absolute;
-    left: 20px;
-    font-family: 'Segoe UI', monospace;
-    font-size: 16px;
-    color: #d4af37;
-    background: rgba(0,0,0,0.6);
-    padding: 5px 10px;
-    border: 1px solid #444;
-    border-radius: 4px;
-}
+        function toggleReady(role) {
+            if (myRole !== role) return;
+            if (isGameStarted) return;
+            socket.emit('player_ready', currentRoom);
+        }
 
-.draft-area { 
-    height: 34vh; 
-    display: flex; 
-    justify-content: center; 
-    gap: 80px; 
-    padding: 10px 50px;
-    align-items: center;
-    background: radial-gradient(ellipse at center, rgba(70, 78, 114, 0.3) 0%, transparent 70%);
-}
+        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Убрана дырка посередине
+        function renderRows() {
+            const container = document.getElementById('char-pool-container');
+            container.innerHTML = '';
+            const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
+            
+            elements.forEach(elem => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = `element-row row-${elem}`;
+                
+                // Просто добавляем всех подряд, без разделения на половинки
+                charsData[elem].forEach(char => {
+                    rowDiv.appendChild(createChar(char));
+                });
 
-.team-side { 
-    width: 45%; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-}
+                container.appendChild(rowDiv);
+            });
+        }
 
-.player-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 10px;
-}
+        function createChar(char) {
+            const el = document.createElement('div');
+            el.className = 'char-option';
+            el.id = `char-${char.id}`;
+            el.innerHTML = `<img src="${char.img}">`;
+            
+            el.onclick = () => {
+                if (!isGameStarted) return;
+                
+                document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
+                
+                selectedCharId = char.id;
+                el.classList.add('selected-pending');
+                
+                document.getElementById('confirm-btn').disabled = false;
+            };
+            return el;
+        }
 
-.player-header h2 { 
-    font-family: 'Cinzel', serif;
-    font-size: 1.8em; 
-    margin: 0; 
-    text-transform: uppercase; 
-    text-shadow: 0 2px 5px rgba(0,0,0,0.8);
-    padding: 5px 20px;
-    border-radius: 5px;
-    background: rgba(0,0,0,0.3);
-}
+        function confirmSelection() {
+            if (lastState && myRole !== lastState.currentTeam) {
+                return; // Не отправляем, если не наш ход
+            }
 
-.blue-side h2 { color: #4facfe; border: 1px solid rgba(79, 172, 254, 0.3); }
-.red-side h2 { color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
+            if (selectedCharId && currentRoom) {
+                socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
+                selectedCharId = null;
+                document.getElementById('confirm-btn').disabled = true;
+                document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
+            }
+        }
 
-/* --- НОВЫЕ СТИЛИ ДЛЯ СВИТЧА --- */
-.ready-switch {
-    width: 60px;
-    height: 30px;
-    background: #333; /* По умолчанию выкл */
-    border-radius: 30px;
-    position: relative;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid #555;
-    display: flex;
-    align-items: center;
-}
+        function updateUI(state) {
+            isGameStarted = state.gameStarted;
+            lastState = state;
+            
+            document.getElementById('blue-name-display').innerText = state.blueName;
+            document.getElementById('red-name-display').innerText = state.redName;
 
-.switch-circle {
-    width: 24px;
-    height: 24px;
-    background: white;
-    border-radius: 50%;
-    position: absolute;
-    left: 3px;
-    transition: all 0.3s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    font-size: 16px;
-}
+            const switchBlue = document.getElementById('blue-ready-switch');
+            const switchRed = document.getElementById('red-ready-switch');
+            
+            if (state.gameStarted) {
+                switchBlue.style.display = 'none';
+                switchRed.style.display = 'none';
+            } else {
+                switchBlue.style.display = 'flex';
+                switchRed.style.display = 'flex';
+                if (state.ready.blue) switchBlue.classList.add('ready-on');
+                else switchBlue.classList.remove('ready-on');
+                if (state.ready.red) switchRed.classList.add('ready-on');
+                else switchRed.classList.remove('ready-on');
+            }
 
-/* СОСТОЯНИЕ: НЕ ГОТОВ (Черный крестик) */
-.switch-circle::before {
-    content: "✖";
-    color: black;
-}
+            const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
+            const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
+            const isGameOver = (state.stepIndex > (state.draftType === 'classic' ? 10 : 28));
+            
+            let statusText = "";
+            if (!state.gameStarted) {
+                statusText = "WAITING FOR PLAYERS...";
+            } else if (isGameOver) {
+                statusText = "DRAFT COMPLETED";
+            } else {
+                statusText = `${team} IS ${act}`; 
+            }
+            document.getElementById('status').innerText = statusText;
 
-/* СОСТОЯНИЕ: ГОТОВ (Зеленый фон, кружок справа, зеленая галочка) */
-.ready-on {
-    background: #28a745; /* Зеленый фон */
-    border-color: #20c997;
-}
+            renderSlots(state);
 
-.ready-on .switch-circle {
-    left: 30px; /* Сдвигаем вправо */
-}
+            document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
+            state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
+            [...state.bluePicks, ...state.redPicks].forEach(id => {
+                document.getElementById(`char-${id}`)?.classList.add('disabled');
+            });
+        }
 
-.ready-on .switch-circle::before {
-    content: "✔"; /* Галочка */
-    color: #28a745; /* Зеленая галочка */
-}
-/* ------------------------------- */
+        function renderSlots(state) {
+            let allFlat = [];
+            Object.values(charsData).forEach(arr => allFlat.push(...arr));
+            
+            const isClassic = state.draftType === 'classic';
+            const steps = isClassic ? STEPS_CLASSIC : STEPS_GITCG;
+            
+            const banCount = isClassic ? 2 : 5;
 
+            const fill = (containerId, items, max, stepNumbers, isBan) => {
+                const div = document.getElementById(containerId);
+                div.innerHTML = '';
+                if (max === 0) return;
+                for (let i = 0; i < max; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'slot-circle';
+                    if (isBan) slot.classList.add('slot-ban');
+                    let charId = null;
+                    if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
+                    if (charId) {
+                        const char = allFlat.find(c => c.id === charId);
+                        if (char) slot.innerHTML = `<img src="${char.img}">`;
+                    } else {
+                        const stepNum = stepNumbers[i] || '';
+                        slot.innerHTML = `<span class="step-number">${stepNum}</span>`;
+                        if (state.stepIndex === stepNum) slot.classList.add('active-slot');
+                    }
+                    div.appendChild(slot);
+                }
+            };
 
-.ban-row { display: flex; gap: 12px; margin-bottom: 15px; } 
-.pick-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.pick-row-small { display: flex; gap: 8px; }
+            fill('blue-bans', state.bans.filter(b => b.team === 'blue'), banCount, steps.blueBan, true);
+            fill('red-bans', state.bans.filter(b => b.team === 'red'), banCount, steps.redBan, true);
 
-.slot-circle {
-    width: 70px; height: 70px; 
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.4);
-    border: 2px solid #5a5f78;
-    overflow: hidden;
-    position: relative;
-    display: flex; justify-content: center; align-items: center;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
-    transition: 0.3s;
-}
-
-.active-slot { 
-    border-color: #d4af37 !important; 
-    box-shadow: 0 0 15px #d4af37, inset 0 0 10px #d4af37 !important;
-    transform: scale(1.05);
-}
-
-.blue-side .slot-circle { border-color: #4facfe; }
-.red-side .slot-circle { border-color: #ff6b6b; }
-.slot-ban { border-color: #881111 !important; background: rgba(50, 0, 0, 0.5); }
-
-.slot-circle img { width: 100%; height: 100%; object-fit: cover; }
-.step-number { font-family: 'Cinzel', serif; font-size: 24px; color: rgba(255, 255, 255, 0.15); }
-
-/* CONTROLS AREA */
-.controls-area {
-    display: flex;
-    justify-content: center;
-    padding-bottom: 10px;
-    position: relative;
-    z-index: 20;
-}
-
-.confirm-btn {
-    background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
-    border: 2px solid #4facfe;
-    color: white;
-    padding: 6px 20px; 
-    font-size: 1em;    
-    font-family: 'Cinzel', serif;
-    box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 1px;
-}
-.confirm-btn:hover:not(:disabled) {
-    background: #4facfe;
-    box-shadow: 0 0 20px #4facfe;
-    transform: scale(1.05);
-}
-.confirm-btn:disabled {
-    background: #333;
-    border-color: #555;
-    color: #777;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-/* CHAR POOL */
-.char-pool { 
-    height: 60vh; 
-    background: rgba(18, 21, 31, 0.95); 
-    border-top: 3px solid #020c1b; 
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly; 
-    padding: 10px 0;
-    box-shadow: 0 -10px 20px rgba(0,0,0,0.5);
-}
-
-.element-row {
-    height: 12%; 
-    width: 100%;
-    display: flex;
-    align-items: center;
-    position: relative;
-}
-
-.row-cryo { background: linear-gradient(90deg, transparent, rgba(160, 240, 255, 0.15), transparent); border-bottom: 1px solid rgba(160, 240, 255, 0.1); }
-.row-hydro { background: linear-gradient(90deg, transparent, rgba(0, 100, 255, 0.15), transparent); border-bottom: 1px solid rgba(0, 100, 255, 0.1); }
-.row-pyro { background: linear-gradient(90deg, transparent, rgba(255, 100, 0, 0.15), transparent); border-bottom: 1px solid rgba(255, 100, 0, 0.1); }
-.row-electro { background: linear-gradient(90deg, transparent, rgba(200, 0, 255, 0.15), transparent); border-bottom: 1px solid rgba(200, 0, 255, 0.1); }
-.row-anemo { background: linear-gradient(90deg, transparent, rgba(0, 255, 100, 0.15), transparent); border-bottom: 1px solid rgba(0, 255, 100, 0.1); }
-.row-geo { background: linear-gradient(90deg, transparent, rgba(255, 200, 0, 0.15), transparent); border-bottom: 1px solid rgba(255, 200, 0, 0.1); }
-.row-dendro { background: linear-gradient(90deg, transparent, rgba(100, 255, 0, 0.15), transparent); border-bottom: 1px solid rgba(100, 255, 0, 0.1); }
-
-.row-half {
-    width: 45%; 
-    display: flex;
-    align-items: center;
-    gap: 8px; 
-}
-.left-half { justify-content: flex-end; } 
-.right-half { justify-content: flex-start; } 
-.row-gap { width: 10%; }
-
-.char-option { 
-    width: 60px;
-    height: 60px;
-    border-radius: 50%; 
-    cursor: pointer; 
-    border: 2px solid rgba(255,255,255,0.1);
-    transition: all 0.2s;
-    background: #222;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    flex-shrink: 0;
-}
-
-.char-option img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-
-.char-option:hover { 
-    transform: scale(1.15); 
-    z-index: 100; 
-    border-color: #d4af37;
-    box-shadow: 0 0 15px #d4af37;
-}
-
-.selected-pending {
-    border-color: #00ff00 !important;
-    box-shadow: 0 0 20px #00ff00 !important;
-    transform: scale(1.15);
-}
-
-.disabled { 
-    opacity: 0.3; 
-    pointer-events: none; 
-    filter: grayscale(100%); 
-    border-color: #333;
-}
+            if (isClassic) {
+                fill('blue-picks-1', state.bluePicks, 3, steps.bluePick, false);
+                fill('blue-picks-2', [], 0, [], false);
+                fill('red-picks-1', state.redPicks, 3, steps.redPick, false);
+                fill('red-picks-2', [], 0, [], false);
+            } else {
+                fill('blue-picks-1', state.bluePicks.slice(0, 5), 5, steps.bluePick.slice(0, 5), false);
+                fill('blue-picks-2', state.bluePicks.slice(5, 9), 4, steps.bluePick.slice(5, 9), false);
+                fill('red-picks-1', state.redPicks.slice(0, 5), 5, steps.redPick.slice(0, 5), false);
+                fill('red-picks-2', state.redPicks.slice(5, 9), 4, steps.redPick.slice(5, 9), false);
+            }
+        }
+    </script>
+</body>
+</html>
+                
