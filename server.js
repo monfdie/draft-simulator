@@ -9,7 +9,7 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === CHARACTERS DATA (Corrected Elements) ===
+// === CHARACTERS DATA ===
 const CHARACTERS_BY_ELEMENT = {
     cryo: [
         { id: 'ganyu', name: 'Ganyu', img: 'https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/3d6a3d4905ff6ad525930cd57166ac12.png' },
@@ -187,16 +187,17 @@ io.on('connection', (socket) => {
     socket.on('create_game', (nickname) => {
         const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
         sessions[roomId] = {
-    // ... старые поля ...
-    stepIndex: 0, 
-    currentTeam: 'blue', currentAction: 'ban',
-    timer: 60, 
-    blueReserve: 300, // <--- Добавлено: 5 минут (300 сек)
-    redReserve: 300,  // <--- Добавлено: 5 минут (300 сек)
-    timerInterval: null,
-    bans: [], 
-    bluePicks: [], redPicks: []
-};
+            id: roomId, bluePlayer: socket.id, redPlayer: null,
+            blueName: nickname || 'Player 1', redName: 'Waiting...',
+            stepIndex: 0, 
+            currentTeam: 'blue', currentAction: 'ban',
+            timer: 60, 
+            blueReserve: 300, // 5 минут резерв
+            redReserve: 300, 
+            timerInterval: null,
+            bans: [], 
+            bluePicks: [], redPicks: []
+        };
         socket.join(roomId);
         socket.emit('init_game', { 
             roomId, role: 'blue', 
@@ -247,7 +248,7 @@ io.on('connection', (socket) => {
 function nextStep(roomId) {
     const session = sessions[roomId];
     session.stepIndex++;
-    session.timer = 60;
+    session.timer = 60; // Сброс основного таймера
 
     if (session.stepIndex >= DRAFT_ORDER.length) {
         io.to(roomId).emit('game_over', getPublicState(session));
@@ -267,32 +268,24 @@ function startTimer(roomId) {
     if (session.timerInterval) clearInterval(session.timerInterval);
     
     session.timerInterval = setInterval(() => {
-        // Если есть основное время - тратим его
         if (session.timer > 0) {
             session.timer--;
-        } 
-        // Если основное вышло - тратим резерв текущей команды
-        else {
+        } else {
+            // Тратим резерв
             if (session.currentTeam === 'blue') {
                 session.blueReserve--;
+                if (session.blueReserve < 0) return autoPick(roomId);
             } else {
                 session.redReserve--;
+                if (session.redReserve < 0) return autoPick(roomId);
             }
         }
 
-        // Проверка на проигрыш по времени (если резерв < 0)
-        if (session.currentTeam === 'blue' && session.blueReserve < 0) {
-            autoPick(roomId); // Или game over
-        } else if (session.currentTeam === 'red' && session.redReserve < 0) {
-            autoPick(roomId);
-        } else {
-            // Отправляем всё состояние таймеров
-            io.to(roomId).emit('timer_tick', {
-                main: session.timer,
-                blueReserve: session.blueReserve,
-                redReserve: session.redReserve
-            });
-        }
+        io.to(roomId).emit('timer_tick', {
+            main: session.timer,
+            blueReserve: session.blueReserve,
+            redReserve: session.redReserve
+        });
     }, 1000);
 }
 
@@ -330,5 +323,3 @@ function getPublicState(session) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server started on :${PORT}`));
-
-
