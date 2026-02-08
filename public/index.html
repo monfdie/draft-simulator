@@ -40,9 +40,7 @@
 
     <div id="game-screen" style="display:none;">
         <div class="header">
-            <div id="room-display" onclick="copyToClipboard()" title="Click to copy code">
-                CODE: ----
-            </div>
+            <div id="room-display">CODE: ----</div>
             
             <div class="reserve-timer blue-res">Reserve: <span id="blue-res">5:00</span></div>
             <div id="timer">60</div>
@@ -54,9 +52,11 @@
             <div class="team-side blue-side">
                 <div class="player-header">
                     <h2 id="blue-name-display">PLAYER 1</h2>
+                    
                     <div id="blue-ready-switch" class="ready-switch" onclick="toggleReady('blue')">
                         <div class="switch-circle"></div>
                     </div>
+
                 </div>
                 <div class="ban-row" id="blue-bans"></div>
                 <div class="pick-row" id="blue-picks-1"></div>
@@ -66,9 +66,11 @@
             <div class="team-side red-side">
                 <div class="player-header">
                     <h2 id="red-name-display">PLAYER 2</h2>
+                    
                     <div id="red-ready-switch" class="ready-switch" onclick="toggleReady('red')">
                         <div class="switch-circle"></div>
                     </div>
+
                 </div>
                 <div class="ban-row" id="red-bans"></div>
                 <div class="pick-row" id="red-picks-1"></div>
@@ -90,9 +92,7 @@
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
-        let lastState = null;
 
-        // Конфигурации ходов
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
             redBan: [3, 4, 11, 19, 23],
@@ -125,69 +125,21 @@
             myRole = data.role;
             currentRoom = data.roomId;
             charsData = data.chars;
-            
-            // Вставляем код и иконку
-            document.getElementById('room-display').innerHTML = `
-                CODE: <span style="color: white; font-weight: bold; margin-left: 5px;">${currentRoom}</span>
-                <svg class="copy-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-            `;
-            
+            document.getElementById('room-display').innerText = `CODE: ${currentRoom}`;
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
             renderRows();
             updateUI(data.state);
         });
 
-        // УЛУЧШЕННАЯ ФУНКЦИЯ КОПИРОВАНИЯ
-        function copyToClipboard() {
-            if(!currentRoom) return;
-
-            const animateSuccess = () => {
-                const el = document.getElementById('room-display');
-                el.classList.add('copied-success');
-                setTimeout(() => el.classList.remove('copied-success'), 800);
-            };
-
-            // Попытка 1: Modern API
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(currentRoom)
-                    .then(animateSuccess)
-                    .catch(err => console.error(err));
-            } else {
-                // Попытка 2: Fallback для старых браузеров или HTTP
-                const textArea = document.createElement("textarea");
-                textArea.value = currentRoom;
-                textArea.style.position = "fixed";
-                textArea.style.left = "-9999px";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    animateSuccess();
-                } catch (err) {
-                    console.error('Unable to copy', err);
-                    alert("Code: " + currentRoom); // Если совсем ничего не сработало
-                }
-                document.body.removeChild(textArea);
-            }
-        }
-
-        socket.on('update_state', (state) => {
-            lastState = state;
-            updateUI(state);
-        });
+        socket.on('update_state', updateUI);
         
         socket.on('game_started', () => {
             isGameStarted = true;
+            // Прячем кнопки сразу при событии старта (для плавности)
             document.getElementById('blue-ready-switch').style.display = 'none';
             document.getElementById('red-ready-switch').style.display = 'none';
             document.getElementById('status').innerText = "DRAFT STARTED!";
-            // Обновляем UI, чтобы активировать взаимодействия, если нужно
-            if (lastState) updateUI(lastState);
         });
 
         socket.on('game_over', (state) => {
@@ -223,6 +175,7 @@
 
         function toggleReady(role) {
             if (myRole !== role) return;
+            // Если игра уже началась, ничего не делаем (хотя кнопки уже скрыты)
             if (isGameStarted) return;
             socket.emit('player_ready', currentRoom);
         }
@@ -264,29 +217,20 @@
             el.id = `char-${char.id}`;
             el.innerHTML = `<img src="${char.img}">`;
             
-            // ВЕРНУЛИ СТАРУЮ ЛОГИКУ: Можно тыкать всегда, если игра началась
             el.onclick = () => {
                 if (!isGameStarted) return;
                 
-                // Убираем старое выделение
                 document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
                 
                 selectedCharId = char.id;
                 el.classList.add('selected-pending');
                 
-                // Активируем кнопку подтверждения
                 document.getElementById('confirm-btn').disabled = false;
             };
             return el;
         }
 
         function confirmSelection() {
-            // Проверка на ход ТОЛЬКО при нажатии кнопки подтверждения
-            if (lastState && myRole !== lastState.currentTeam) {
-                // Опционально: можно добавить алерт "Не ваш ход"
-                return; 
-            }
-
             if (selectedCharId && currentRoom) {
                 socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
                 selectedCharId = null;
@@ -297,7 +241,6 @@
 
         function updateUI(state) {
             isGameStarted = state.gameStarted;
-            lastState = state;
             
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
@@ -305,14 +248,18 @@
             const switchBlue = document.getElementById('blue-ready-switch');
             const switchRed = document.getElementById('red-ready-switch');
             
+            // ЛОГИКА СКРЫТИЯ КНОПОК
             if (state.gameStarted) {
                 switchBlue.style.display = 'none';
                 switchRed.style.display = 'none';
             } else {
                 switchBlue.style.display = 'flex';
                 switchRed.style.display = 'flex';
+                
+                // Обновляем визуальное состояние (ВКЛ/ВЫКЛ)
                 if (state.ready.blue) switchBlue.classList.add('ready-on');
                 else switchBlue.classList.remove('ready-on');
+
                 if (state.ready.red) switchRed.classList.add('ready-on');
                 else switchRed.classList.remove('ready-on');
             }
@@ -327,21 +274,9 @@
             } else if (isGameOver) {
                 statusText = "DRAFT COMPLETED";
             } else {
-                statusText = `${team} IS ${act}`; 
+                statusText = `${team} IS ${act} (Turn ${state.stepIndex})`;
             }
             document.getElementById('status').innerText = statusText;
-
-            // ВЕРНУЛИ СТАРУЮ ЛОГИКУ: Кнопка и пул всегда доступны визуально
-            // (Кнопка Select всегда видна, просто disabled, если не выбран чар)
-            const confirmBtn = document.getElementById('confirm-btn');
-            
-            // Если выбран чар, но ход перешел - сбрасываем выбор
-            if (selectedCharId && confirmBtn.disabled === false) {
-                 // Здесь можно оставить выделение, если хотите, 
-                 // но обычно лучше сбросить, чтобы не пикнуть случайно в свой ход того, 
-                 // кого хотел пикнуть в чужой (если забанили и т.д.)
-                 // Пока оставим поведение "мягкого сброса" при обновлении стейта:
-            }
 
             renderSlots(state);
 
