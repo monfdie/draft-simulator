@@ -180,14 +180,15 @@ button:active { transform: scale(0.95); }
 
 /* Иконки выбора */
 .char-option { 
-    height: 85%; 
-    aspect-ratio: 1 / 1; 
+    width: 60px;        /* Фиксированная ширина */
+    height: 60px;       /* Фиксированная высота */
     border-radius: 50%; 
     cursor: pointer; 
     border: 2px solid rgba(255,255,255,0.1);
     transition: all 0.2s;
     background: #222;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    flex-shrink: 0;     /* Запрещаем сжиматься, если места мало */
 }
 
 .char-option img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
