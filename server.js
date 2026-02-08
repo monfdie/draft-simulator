@@ -10,6 +10,9 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // === CHARACTERS DATA ===
+// (Вынесем данные в отдельный файл characters.json в реальном проекте, 
+// но для цельности кода оставим здесь сокращенную структуру или полную, если нужно.
+// Для краткости я использую твой полный список из прошлого запроса).
 const CHARACTERS_BY_ELEMENT = {
     cryo: [
         { id: 'ganyu', name: 'Ganyu', img: 'https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/3d6a3d4905ff6ad525930cd57166ac12.png' },
@@ -204,8 +207,12 @@ io.on('connection', (socket) => {
         const selectedSchema = DRAFT_SCHEMAS[draftType] || DRAFT_SCHEMAS['gitcg'];
 
         sessions[roomId] = {
-            id: roomId, bluePlayer: socket.id, redPlayer: null,
-            blueName: nickname || 'Player 1', redName: 'Waiting...',
+            id: roomId, 
+            bluePlayer: socket.id, 
+            redPlayer: null,
+            spectators: [], // Список зрителей
+            blueName: nickname || 'Player 1', 
+            redName: 'Waiting...',
             stepIndex: 0, 
             draftType: draftType || 'gitcg',
             draftOrder: selectedSchema, 
@@ -217,7 +224,6 @@ io.on('connection', (socket) => {
             timerInterval: null,
             bans: [], 
             bluePicks: [], redPicks: [],
-            // НОВЫЕ ПОЛЯ ДЛЯ ГОТОВНОСТИ
             ready: { blue: false, red: false },
             gameStarted: false
         };
@@ -228,9 +234,29 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('join_game', ({roomId, nickname}) => {
+    socket.on('join_game', ({roomId, nickname, asSpectator}) => {
         const session = sessions[roomId];
-        if (session && !session.redPlayer) {
+        
+        if (!session) {
+            socket.emit('error_msg', 'Room not found');
+            return;
+        }
+
+        // Логика наблюдателя
+        if (asSpectator || (session.bluePlayer && session.redPlayer)) {
+            session.spectators.push(socket.id);
+            socket.join(roomId);
+            socket.emit('init_game', { 
+                roomId, role: 'spectator', 
+                state: getPublicState(session), chars: CHARACTERS_BY_ELEMENT 
+            });
+            // Не отправляем update_state, так как состояние игры не изменилось
+            // Но можно отправить самому себе, если нужно обновить таймеры и т.д.
+            return;
+        }
+
+        // Если это не наблюдатель и место свободно - заходим как Red
+        if (!session.redPlayer) {
             session.redPlayer = socket.id;
             session.redName = nickname || 'Player 2';
             socket.join(roomId);
@@ -239,13 +265,9 @@ io.on('connection', (socket) => {
                 state: getPublicState(session), chars: CHARACTERS_BY_ELEMENT 
             });
             io.to(roomId).emit('update_state', getPublicState(session));
-            // Таймер здесь больше не запускается
-        } else {
-            socket.emit('error_msg', 'Room not found');
-        }
+        } 
     });
 
-    // Обработка кнопки READY
     socket.on('player_ready', (roomId) => {
         const session = sessions[roomId];
         if (!session) return;
@@ -258,7 +280,7 @@ io.on('connection', (socket) => {
         if (session.ready.blue && session.ready.red && !session.gameStarted) {
             session.gameStarted = true;
             startTimer(roomId);
-            io.to(roomId).emit('game_started'); // Оповещаем всех
+            io.to(roomId).emit('game_started');
         }
     });
 
@@ -266,11 +288,12 @@ io.on('connection', (socket) => {
         const session = sessions[roomId];
         if (!session || !session.redPlayer) return;
         
-        // Блокируем, если игра не началась
         if (!session.gameStarted) return;
 
         const isBlueTurn = session.currentTeam === 'blue' && socket.id === session.bluePlayer;
         const isRedTurn = session.currentTeam === 'red' && socket.id === session.redPlayer;
+        
+        // Зрители (и чужие сокеты) не могут ходить
         if (!isBlueTurn && !isRedTurn) return;
 
         // Validation
@@ -285,6 +308,11 @@ io.on('connection', (socket) => {
         }
 
         nextStep(roomId);
+    });
+
+    socket.on('disconnect', () => {
+        // Здесь можно добавить логику очистки, если игрок отключился
+        // Пока оставим пустым для простоты, но в продакшене нужно обрабатывать
     });
 });
 
