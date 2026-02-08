@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Genshin Draft</title>
@@ -8,23 +8,23 @@
 </head>
 <body>
     <div id="lobby-screen">
-    <h1>Genshin Draft</h1>
-    <input id="nickname-input" placeholder="Your Nickname" maxlength="15">
-    <br><br>
-    <button onclick="createGame()">Create (Blue)</button>
-    <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
-        <input id="room-input" placeholder="Room Code">
-        <button onclick="joinGame()">Join (Red)</button>
+        <h1>Genshin Draft</h1>
+        <input id="nickname-input" placeholder="Your Nickname" maxlength="15">
+        <br><br>
+        <button onclick="createGame()">Create Game (Blue)</button>
+        <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
+            <input id="room-input" placeholder="Room Code">
+            <button onclick="joinGame()">Join Game (Red)</button>
+        </div>
     </div>
-</div>
 
-<div id="game-screen" style="display:none;">
-    <div class="header">
-        <div style="color: #4facfe; font-size: 14px;">Blue Reserve: <span id="blue-res">5:00</span></div>
-        <div id="timer">60</div>
-        <div style="color: #ff6b6b; font-size: 14px;">Red Reserve: <span id="red-res">5:00</span></div>
-        <div id="status">Waiting...</div>
-    </div>
+    <div id="game-screen" style="display:none;">
+        <div class="header">
+            <div class="reserve-timer blue-res">Reserve: <span id="blue-res">5:00</span></div>
+            <div id="timer">60</div>
+            <div class="reserve-timer red-res">Reserve: <span id="red-res">5:00</span></div>
+            <div id="status">Waiting for opponent...</div>
+        </div>
 
         <div class="draft-area">
             <div class="team-side blue-side">
@@ -58,14 +58,14 @@
 
         function createGame() { 
             const nick = document.getElementById('nickname-input').value;
-            if(!nick) return alert("Nickname!");
+            if(!nick) return alert("Please enter a nickname!");
             socket.emit('create_game', nick); 
         }
 
         function joinGame() { 
             const nick = document.getElementById('nickname-input').value;
             const room = document.getElementById('room-input').value;
-            if(!nick || !room) return alert("Введите ник и код!");
+            if(!nick || !room) return alert("Please enter a nickname and room code!");
             socket.emit('join_game', {roomId: room, nickname: nick}); 
         }
 
@@ -80,78 +80,60 @@
         });
 
         socket.on('update_state', updateUI);
-        // Функция форматирования времени (секунды -> ММ:СС)
-function formatTime(s) {
-    if (s < 0) s = 0;
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
-}
 
-socket.on('timer_tick', (data) => {
-    // Если приходит просто число (старый код) или объект (новый)
-    const mainTime = typeof data === 'object' ? data.main : data;
-    
-    document.getElementById('timer').innerText = mainTime;
-    
-    // Если пришли резервы, обновляем их
-    if (typeof data === 'object') {
-        const blueRes = document.getElementById('blue-res');
-        const redRes = document.getElementById('red-res');
-        
-        if(blueRes) blueRes.innerText = formatTime(data.blueReserve);
-        if(redRes) redRes.innerText = formatTime(data.redReserve);
-        
-        // Визуально показываем, что тратится резерв (красный таймер)
-        const timerEl = document.getElementById('timer');
-        if (mainTime === 0) {
-             timerEl.style.color = '#555'; // Основной погас
-             timerEl.style.fontSize = '20px'; // Делаем поменьше, чтобы не отвлекал
-        } else {
-             timerEl.style.color = '#ff5555';
-             timerEl.style.fontSize = '28px';
+        function formatTime(s) {
+            if (s < 0) s = 0;
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${m}:${sec < 10 ? '0' : ''}${sec}`;
         }
-    }
-});
+
+        socket.on('timer_tick', (data) => {
+            const mainTime = typeof data === 'object' ? data.main : data;
+            document.getElementById('timer').innerText = mainTime;
+            
+            if (typeof data === 'object') {
+                document.getElementById('blue-res').innerText = formatTime(data.blueReserve);
+                document.getElementById('red-res').innerText = formatTime(data.redReserve);
+                
+                const timerEl = document.getElementById('timer');
+                if (mainTime === 0) {
+                     timerEl.style.color = '#777';
+                     timerEl.style.fontSize = '20px';
+                } else {
+                     timerEl.style.color = '#ff5555';
+                     timerEl.style.fontSize = '28px';
+                }
+            }
+        });
 
         function renderRows() {
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
-            
             const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
             
             elements.forEach(elem => {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `element-row row-${elem}`;
-                
-                // Делим персонажей пополам
                 const chars = charsData[elem];
                 const mid = Math.ceil(chars.length / 2);
                 const leftPart = chars.slice(0, mid);
                 const rightPart = chars.slice(mid);
 
-                // Левая часть
                 const leftDiv = document.createElement('div');
                 leftDiv.className = 'row-half left-half';
-                leftPart.forEach(char => {
-                    leftDiv.appendChild(createChar(char));
-                });
+                leftPart.forEach(char => leftDiv.appendChild(createChar(char)));
 
-                // Разделитель
                 const gapDiv = document.createElement('div');
                 gapDiv.className = 'row-gap';
 
-                // Правая часть
                 const rightDiv = document.createElement('div');
                 rightDiv.className = 'row-half right-half';
-                rightPart.forEach(char => {
-                    rightDiv.appendChild(createChar(char));
-                });
+                rightPart.forEach(char => rightDiv.appendChild(createChar(char)));
 
                 rowDiv.appendChild(leftDiv);
                 rowDiv.appendChild(gapDiv);
                 rowDiv.appendChild(rightDiv);
-                
                 container.appendChild(rowDiv);
             });
         }
@@ -166,23 +148,22 @@ socket.on('timer_tick', (data) => {
         }
 
         function updateUI(state) {
-    document.getElementById('blue-name-display').innerText = state.blueName;
-    document.getElementById('red-name-display').innerText = state.redName;
-    
-    // ПЕРЕВОД НА АНГЛИЙСКИЙ ЗДЕСЬ
-    const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
-    const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
-    
-    document.getElementById('status').innerText = `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
+            document.getElementById('blue-name-display').innerText = state.blueName;
+            document.getElementById('red-name-display').innerText = state.redName;
+            
+            const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
+            const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
+            
+            document.getElementById('status').innerText = `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
 
-    renderSlots(state);
+            renderSlots(state);
 
-    document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
-    state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
-    [...state.bluePicks, ...state.redPicks].forEach(id => {
-        document.getElementById(`char-${id}`)?.classList.add('disabled');
-    });
-}
+            document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
+            state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
+            [...state.bluePicks, ...state.redPicks].forEach(id => {
+                document.getElementById(`char-${id}`)?.classList.add('disabled');
+            });
+        }
 
         function renderSlots(state) {
             let allFlat = [];
@@ -213,10 +194,8 @@ socket.on('timer_tick', (data) => {
 
             fill('blue-bans', state.bans.filter(b => b.team === 'blue'), 5, STEPS_BLUE_BAN, true);
             fill('red-bans', state.bans.filter(b => b.team === 'red'), 5, STEPS_RED_BAN, true);
-
             fill('blue-picks-1', state.bluePicks.slice(0, 5), 5, STEPS_BLUE_PICK.slice(0, 5), false);
             fill('blue-picks-2', state.bluePicks.slice(5, 9), 4, STEPS_BLUE_PICK.slice(5, 9), false);
-
             fill('red-picks-1', state.redPicks.slice(0, 5), 5, STEPS_RED_PICK.slice(0, 5), false);
             fill('red-picks-2', state.redPicks.slice(5, 9), 4, STEPS_RED_PICK.slice(5, 9), false);
         }
