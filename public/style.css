@@ -1,121 +1,185 @@
+/* === ОСНОВНЫЕ НАСТРОЙКИ === */
 body { 
-    background: #121212; 
-    color: white; 
+    background: #1e1e1e; /* Темно-серый фон как на столе */
+    color: #eee; 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     margin: 0; 
     height: 100vh;
-    overflow: hidden; /* ЗАПРЕТ СКРОЛЛА */
+    overflow: hidden; 
+    user-select: none;
 }
 
-#lobby-screen { text-align: center; padding-top: 100px; }
-input { padding: 10px; font-size: 1.2em; border-radius: 5px; border: none; text-align: center; }
-button { padding: 15px 30px; font-size: 1.2em; cursor: pointer; border: none; border-radius: 5px; background: #4facfe; color: white; margin: 10px; }
-button:hover { background: #007bff; }
-#game-screen { display: flex; flex-direction: column; height: 100%; }
-
-/* Шапка */
-.header { 
-    height: 5vh; 
-    display: flex; gap: 20px;
-    align-items: center; justify-content: center; 
-    background: #1a1a1a; border-bottom: 1px solid #333; 
+/* === ЛОББИ === */
+#lobby-screen {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100vh; background: #121212;
 }
-#timer { font-size: 24px; color: #ffeb3b; font-weight: bold; }
-#status { font-size: 16px; color: #aaa; }
-
-/* ЗОНА ДРАФТА */
-.draft-area { 
-    height: 35vh; 
-    display: flex; 
-    justify-content: center; 
-    gap: 100px; 
-    padding: 5px 50px;
-    align-items: center;
+.lobby-card {
+    background: #252525; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    text-align: center;
 }
+input {
+    background: #333; border: 1px solid #444; color: white;
+    padding: 12px; font-size: 1.1em; border-radius: 6px; outline: none; margin-bottom: 10px;
+}
+button {
+    padding: 12px 24px; font-size: 1em; cursor: pointer; border: none; border-radius: 6px;
+    font-weight: bold; text-transform: uppercase; transition: 0.2s;
+}
+.btn-create { background: #4facfe; color: white; width: 100%; margin-bottom: 20px; }
+.btn-create:hover { background: #007bff; }
+.join-block { border-top: 1px solid #444; padding-top: 20px; }
+.btn-join { background: #ff4b1f; color: white; }
+.btn-join:hover { background: #d03000; }
 
-.team-side { 
-    width: 45%; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
+/* === ИГРОВОЙ ЭКРАН === */
+#game-screen {
+    display: flex; flex-direction: column; height: 100%;
+    /* Легкий градиент на фоне, имитирующий освещение */
+    background: radial-gradient(circle at center, #2a2a2a 0%, #111 100%);
 }
 
-.blue-side h2 { color: #4facfe; font-size: 1.8em; margin: 2px 0; text-transform: uppercase; }
-.red-side h2 { color: #ff4b1f; font-size: 1.8em; margin: 2px 0; text-transform: uppercase; }
-
-/* Ряды (5-5-4) */
-.ban-row { display: flex; gap: 15px; margin-bottom: 15px; } 
-.pick-row { display: flex; gap: 10px; margin-bottom: 5px; }
-.pick-row-small { display: flex; gap: 10px; }
-
-/* СЛОТЫ */
-.slot-circle {
-    width: 70px; height: 70px; 
-    border-radius: 50%;
-    background: #252525;
-    border: 3px solid #444;
-    overflow: hidden;
-    position: relative;
-    display: flex; justify-content: center; align-items: center;
+/* 1. ВЕРХНЯЯ ПАНЕЛЬ (Имена и Таймер) */
+.top-bar {
+    height: 8vh;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 50px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid #333;
 }
-.blue-side .slot-circle { border-color: #4facfe; }
-.red-side .slot-circle { border-color: #ff4b1f; }
-.slot-ban { border-color: #500 !important; }
-.active-slot { border-color: yellow !important; box-shadow: 0 0 15px yellow; }
-.slot-circle img { width: 100%; height: 100%; object-fit: cover; }
-.step-number { font-size: 30px; font-weight: bold; color: rgba(255, 255, 255, 0.2); }
+.player-info h2 { margin: 0; font-size: 1.5em; text-transform: uppercase; letter-spacing: 2px; }
+.blue-info h2 { color: #4facfe; text-shadow: 0 0 10px rgba(79, 172, 254, 0.4); }
+.red-info h2 { color: #ff4b1f; text-shadow: 0 0 10px rgba(255, 75, 31, 0.4); }
 
-/* ПУЛ ПЕРСОНАЖЕЙ (NO SCROLL) */
-.char-pool { 
-    height: 60vh; /* Ровно 60% экрана */
-    background: #0f0f12; 
-    border-top: 4px solid #333; 
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly; /* Равномерно распределить 7 рядов */
+.timer-box { text-align: center; }
+#timer { font-size: 2.5em; font-weight: bold; line-height: 1; display: block; }
+#status { font-size: 0.8em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+
+/* 2. ЗОНА ДРАФТА (Ban & Pick Rows) */
+.draft-board {
+    height: 28vh;
+    display: flex; flex-direction: column; justify-content: center;
     padding: 10px 0;
+    gap: 15px; /* Расстояние между рядом банов и пиков */
+}
+
+.draft-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 30px; /* Расстояние от центральной надписи до слотов */
+    position: relative;
+}
+
+.row-label {
+    width: 80px; text-align: center;
+    font-size: 1.2em; font-weight: bold; color: #666;
+    text-transform: uppercase; letter-spacing: 2px;
+}
+
+.slots-group {
+    display: flex; gap: 10px;
+}
+
+/* Круглые слоты */
+.slot-circle {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    border: 2px solid #444;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 10px #000;
+    transition: all 0.3s ease;
+}
+
+.slot-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Подсветка команд */
+#blue-bans .slot-circle, #blue-picks .slot-circle { border-color: rgba(79, 172, 254, 0.3); }
+#red-bans .slot-circle, #red-picks .slot-circle { border-color: rgba(255, 75, 31, 0.3); }
+
+/* Активные слоты (если нужно подсветить последний) */
+.filled { box-shadow: 0 0 10px rgba(255,255,255,0.2); border-color: #fff !important; }
+
+/* Баны чуть меньше пиков визуально (опционально) */
+.ban-section .slot-circle { width: 50px; height: 50px; opacity: 0.8; }
+.ban-section .slot-circle.filled { filter: grayscale(100%); } /* Баны черно-белые */
+
+/* 3. РАЗДЕЛИТЕЛЬ */
+.divider-line {
+    height: 2px; background: linear-gradient(90deg, transparent, #444, transparent);
+    width: 80%; margin: 0 auto;
+}
+
+/* 4. ПУЛ ПЕРСОНАЖЕЙ */
+.char-pool {
+    flex-grow: 1; /* Занимает оставшееся место */
+    padding: 20px 40px;
+    display: flex; flex-direction: column; justify-content: space-evenly;
 }
 
 .element-row {
-    height: 12%; /* Каждый ряд занимает 12% от высоты пула */
-    width: 100%;
-    display: flex;
-    align-items: center;
+    display: flex; justify-content: center; align-items: center;
+    height: 13%; /* Равномерное распределение по высоте */
+    position: relative;
 }
 
-/* Половинки ряда */
-.row-half {
-    width: 45%; /* Почти половина ширины */
-    display: flex;
-    align-items: center;
-    gap: 5px; /* Расстояние между иконками */
+.pool-side {
+    display: flex; align-items: center; gap: 8px;
+    width: 45%; /* Оставляем 10% на центр */
 }
+.left-side { justify-content: flex-end; padding-right: 40px; border-right: 1px solid rgba(255,255,255,0.05); }
+.right-side { justify-content: flex-start; padding-left: 40px; }
 
-.left-half { justify-content: flex-end; } /* Левые жмутся к центру */
-.right-half { justify-content: flex-start; } /* Правые жмутся к центру */
-
-.row-gap { width: 10%; } /* Пробел посередине */
-
-/* Иконки выбора */
-.char-option { 
-    height: 90%; /* Высота иконки зависит от высоты ряда */
-    aspect-ratio: 1 / 1; /* Чтобы были квадратными/круглыми */
-    border-radius: 50%; 
-    cursor: pointer; 
-    border: 2px solid transparent;
+/* Иконка в пуле */
+.char-option {
+    height: 90%; aspect-ratio: 1/1;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative; /* Для оверлея */
     transition: transform 0.2s;
+    border: 2px solid transparent;
+}
+.char-option img {
+    width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+    display: block;
+}
+.char-option:hover { transform: scale(1.15); z-index: 10; border-color: white; }
+
+/* === ОВЕРЛЕИ СТАТУСА (Крестик / Галочка) === */
+.status-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: bold;
+    color: white;
+    text-shadow: 0 0 3px black;
+    opacity: 0; /* Скрыто по умолчанию */
 }
 
-.char-option img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-.char-option:hover { transform: scale(1.2); z-index: 10; border-color: white; }
+/* Если забанен */
+.is-banned { pointer-events: none; }
+.is-banned img { filter: grayscale(100%) brightness(0.4); }
+.is-banned .status-overlay { opacity: 1; content: '✕'; } /* CSS content не работает в div, исправим ниже */
+.is-banned .status-overlay::after { content: '✕'; color: #ff4444; font-size: 1.5em; }
 
-/* Цвета */
-.row-cryo { background: linear-gradient(90deg, transparent, rgba(160, 240, 255, 0.1), transparent); }
-.row-hydro { background: linear-gradient(90deg, transparent, rgba(0, 100, 255, 0.1), transparent); }
-.row-pyro { background: linear-gradient(90deg, transparent, rgba(255, 100, 0, 0.1), transparent); }
-.row-electro { background: linear-gradient(90deg, transparent, rgba(200, 0, 255, 0.1), transparent); }
-.row-anemo { background: linear-gradient(90deg, transparent, rgba(0, 255, 100, 0.1), transparent); }
-.row-geo { background: linear-gradient(90deg, transparent, rgba(255, 200, 0, 0.1), transparent); }
-.row-dendro { background: linear-gradient(90deg, transparent, rgba(100, 255, 0, 0.1), transparent); }
+/* Если выбран */
+.is-picked { pointer-events: none; }
+.is-picked img { filter: brightness(0.4); }
+.is-picked .status-overlay { opacity: 1; }
+.is-picked .status-overlay::after { content: '✔'; color: #4facfe; font-size: 1.5em; }
 
-.disabled { opacity: 0.15; pointer-events: none; filter: grayscale(100%); }
+/* Цвета рядов (фоны) */
+.row-cryo { background: linear-gradient(90deg, transparent, rgba(160, 240, 255, 0.05), transparent); }
+.row-hydro { background: linear-gradient(90deg, transparent, rgba(0, 100, 255, 0.05), transparent); }
+.row-pyro { background: linear-gradient(90deg, transparent, rgba(255, 100, 0, 0.05), transparent); }
+.row-electro { background: linear-gradient(90deg, transparent, rgba(200, 0, 255, 0.05), transparent); }
+.row-anemo { background: linear-gradient(90deg, transparent, rgba(0, 255, 100, 0.05), transparent); }
+.row-geo { background: linear-gradient(90deg, transparent, rgba(255, 200, 0, 0.05), transparent); }
+.row-dendro { background: linear-gradient(90deg, transparent, rgba(100, 255, 0, 0.05), transparent); }
+
+/* Адаптив для маленьких экранов */
+@media (max-width: 1200px) {
+    .draft-row { gap: 10px; }
+    .pool-side { gap: 2px; padding-left: 10px; padding-right: 10px; }
+    .char-option:hover { transform: scale(1.0); } /* Отключаем зум если тесно */
+}
