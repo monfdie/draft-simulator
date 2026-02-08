@@ -3,7 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Segoe+UI&display=swap');
 
 body { 
-    background: radial-gradient(circle at center, #1b2038 0%, #0d101a 100%); /* Более темный фон */
+    background: radial-gradient(circle at center, #1b2038 0%, #0d101a 100%);
     color: #ece5d8;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     margin: 0; 
@@ -12,21 +12,20 @@ body {
     user-select: none;
 }
 
-/* --- LOBBY STYLES (NEW) --- */
+/* LOBBY STYLES */
 #lobby-screen { 
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
     background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(5px); /* Эффект размытия сзади */
+    backdrop-filter: blur(5px);
 }
 
-/* Карточка в стиле хай-тек/геншин интерфейса */
 .lobby-card {
     background: rgba(22, 28, 48, 0.95);
     border: 1px solid #3c4566;
-    border-top: 2px solid #4facfe; /* Яркий верх */
+    border-top: 2px solid #4facfe;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 50px rgba(79, 172, 254, 0.05);
     padding: 40px;
     width: 350px;
@@ -36,7 +35,6 @@ body {
     position: relative;
 }
 
-/* Декоративные уголки */
 .lobby-card::before {
     content: '';
     position: absolute;
@@ -54,7 +52,6 @@ body {
     text-align: center;
 }
 
-/* Группировка инпутов */
 .input-group {
     display: flex;
     flex-direction: column;
@@ -69,11 +66,10 @@ body {
     letter-spacing: 1px;
 }
 
-/* Стиль инпутов и селектов - ПРЯМЫЕ УГЛЫ, СИНИЙ ФОН */
 input, select { 
     padding: 12px; 
     font-size: 1em; 
-    border-radius: 0; /* Убрали скругление */
+    border-radius: 0; 
     border: 1px solid #3c4566; 
     background: #0f131f; 
     color: #4facfe; 
@@ -92,7 +88,6 @@ input:focus, select:focus {
 
 input::placeholder { color: #3c4566; }
 
-/* Кастомная стрелка для select */
 select {
     cursor: pointer;
     appearance: none;
@@ -102,13 +97,12 @@ select {
     background-size: .65em auto;
 }
 
-/* Кнопки - ПРЯМЫЕ УГЛЫ */
 button { 
     padding: 12px; 
     font-size: 1.1em; 
     cursor: pointer; 
     border: 1px solid transparent; 
-    border-radius: 0; /* Убрали скругление */
+    border-radius: 0;
     color: #fff; 
     font-weight: bold;
     margin: 5px 0; 
@@ -141,7 +135,6 @@ button {
     box-shadow: 0 0 20px #ff6b6b;
 }
 
-/* Разделитель */
 .separator {
     text-align: center;
     margin: 5px 0;
@@ -164,7 +157,7 @@ button {
     z-index: 0;
 }
 
-/* --- GAME SCREEN STYLES (UNCHANGED MOSTLY) --- */
+/* GAME SCREEN */
 #game-screen { display: flex; flex-direction: column; height: 100%; }
 
 .header { 
@@ -199,16 +192,41 @@ button {
     align-items: center; 
 }
 
-.team-side h2 { 
+/* Стили для заголовка игрока и кнопки Ready */
+.player-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.player-header h2 { 
     font-family: 'Cinzel', serif;
     font-size: 1.8em; 
-    margin: 5px 0 15px 0; 
+    margin: 0; 
     text-transform: uppercase; 
     text-shadow: 0 2px 5px rgba(0,0,0,0.8);
     padding: 5px 20px;
     border-radius: 5px;
     background: rgba(0,0,0,0.3);
 }
+
+.ready-btn {
+    font-size: 0.8em;
+    padding: 5px 15px;
+    background: #444;
+    border: 1px solid #666;
+    color: #aaa;
+    margin: 0;
+}
+
+.ready-active {
+    background: #28a745;
+    border-color: #20c997;
+    color: white;
+    box-shadow: 0 0 10px #28a745;
+}
+
 .blue-side h2 { color: #4facfe; border: 1px solid rgba(79, 172, 254, 0.3); }
 .red-side h2 { color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
 
@@ -241,10 +259,42 @@ button {
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { font-family: 'Cinzel', serif; font-size: 24px; color: rgba(255, 255, 255, 0.15); }
 
+/* CONTROLS AREA (NEW) */
+.controls-area {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 10px;
+    position: relative;
+    z-index: 20;
+}
+
+.confirm-btn {
+    background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+    border: 2px solid #4facfe;
+    color: white;
+    padding: 10px 60px;
+    font-size: 1.5em;
+    font-family: 'Cinzel', serif;
+    box-shadow: 0 0 15px rgba(79, 172, 254, 0.5);
+}
+.confirm-btn:hover:not(:disabled) {
+    background: #4facfe;
+    box-shadow: 0 0 30px #4facfe;
+    transform: scale(1.05);
+}
+.confirm-btn:disabled {
+    background: #333;
+    border-color: #555;
+    color: #777;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* CHAR POOL (UPDATED) */
 .char-pool { 
     height: 60vh; 
     background: rgba(18, 21, 31, 0.95); 
-    border-top: 3px solid #d4af37;
+    border-top: 3px solid #0050b3; /* ТЕМНО-СИНЯЯ ЛИНИЯ */
     display: flex;
     flex-direction: column;
     justify-content: space-evenly; 
@@ -297,6 +347,13 @@ button {
     z-index: 100; 
     border-color: #d4af37;
     box-shadow: 0 0 15px #d4af37;
+}
+
+/* СТИЛЬ ВЫДЕЛЕННОГО НО НЕ ПОДТВЕРЖДЕННОГО */
+.selected-pending {
+    border-color: #00ff00 !important;
+    box-shadow: 0 0 20px #00ff00 !important;
+    transform: scale(1.15);
 }
 
 .disabled { 
