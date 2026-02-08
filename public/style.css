@@ -165,7 +165,7 @@ button {
     display: flex; gap: 30px;
     align-items: center; justify-content: center; 
     background: rgba(20, 24, 40, 0.9); 
-    border-bottom: 1px solid #d4af37; 
+    border-bottom: 3px solid #004e92; /* ИЗМЕНЕНО НА ТЕМНО-СИНИЙ */
     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     z-index: 10;
 }
@@ -192,7 +192,6 @@ button {
     align-items: center; 
 }
 
-/* Стили для заголовка игрока и кнопки Ready */
 .player-header {
     display: flex;
     align-items: center;
@@ -259,7 +258,7 @@ button {
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { font-family: 'Cinzel', serif; font-size: 24px; color: rgba(255, 255, 255, 0.15); }
 
-/* CONTROLS AREA (NEW) */
+/* CONTROLS AREA (UPDATED BUTTON SIZE) */
 .controls-area {
     display: flex;
     justify-content: center;
@@ -272,10 +271,12 @@ button {
     background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
     border: 2px solid #4facfe;
     color: white;
-    padding: 10px 60px;
-    font-size: 1.5em;
+    padding: 8px 30px; /* УМЕНЬШЕНО */
+    font-size: 1.2em;  /* УМЕНЬШЕНО */
     font-family: 'Cinzel', serif;
     box-shadow: 0 0 15px rgba(79, 172, 254, 0.5);
+    cursor: pointer;
+    transition: all 0.2s;
 }
 .confirm-btn:hover:not(:disabled) {
     background: #4facfe;
@@ -290,11 +291,11 @@ button {
     box-shadow: none;
 }
 
-/* CHAR POOL (UPDATED) */
+/* CHAR POOL */
 .char-pool { 
     height: 60vh; 
     background: rgba(18, 21, 31, 0.95); 
-    border-top: 3px solid #0050b3; /* ТЕМНО-СИНЯЯ ЛИНИЯ */
+    border-top: 3px solid #004e92; /* ИЗМЕНЕНО НА ТЕМНО-СИНИЙ */
     display: flex;
     flex-direction: column;
     justify-content: space-evenly; 
@@ -349,7 +350,6 @@ button {
     box-shadow: 0 0 15px #d4af37;
 }
 
-/* СТИЛЬ ВЫДЕЛЕННОГО НО НЕ ПОДТВЕРЖДЕННОГО */
 .selected-pending {
     border-color: #00ff00 !important;
     box-shadow: 0 0 20px #00ff00 !important;
