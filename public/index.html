@@ -98,6 +98,14 @@
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
+        
+        // --- 1. ГЕНЕРАЦИЯ ID ПОЛЬЗОВАТЕЛЯ ---
+        let myUserId = localStorage.getItem('draft_user_id');
+        if (!myUserId) {
+            myUserId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            localStorage.setItem('draft_user_id', myUserId);
+        }
+        // -------------------------------------
 
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
@@ -117,7 +125,8 @@
             const nick = document.getElementById('nickname-input').value;
             const type = document.getElementById('draft-type-select').value;
             if(!nick) return alert("Please enter a nickname!");
-            socket.emit('create_game', { nickname: nick, draftType: type }); 
+            // Отправляем userId
+            socket.emit('create_game', { nickname: nick, draftType: type, userId: myUserId }); 
         }
 
         function joinGame() { 
@@ -126,7 +135,8 @@
             const isSpec = document.getElementById('spectator-check').checked;
             
             if(!nick || !room) return alert("Please enter a nickname and room code!");
-            socket.emit('join_game', {roomId: room, nickname: nick, asSpectator: isSpec}); 
+            // Отправляем userId
+            socket.emit('join_game', {roomId: room, nickname: nick, asSpectator: isSpec, userId: myUserId}); 
         }
 
         socket.on('init_game', (data) => {
@@ -283,7 +293,6 @@
             } else if (isGameOver) {
                 statusText = "DRAFT COMPLETED";
             } else {
-                // ИЗМЕНЕНИЕ ЗДЕСЬ: Убрано отображение номера хода (Turn X)
                 statusText = `${team} IS ${act}`;
             }
             document.getElementById('status').innerText = statusText;
