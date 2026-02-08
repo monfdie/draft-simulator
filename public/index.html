@@ -52,11 +52,9 @@
             <div class="team-side blue-side">
                 <div class="player-header">
                     <h2 id="blue-name-display">PLAYER 1</h2>
-                    
                     <div id="blue-ready-switch" class="ready-switch" onclick="toggleReady('blue')">
                         <div class="switch-circle"></div>
                     </div>
-
                 </div>
                 <div class="ban-row" id="blue-bans"></div>
                 <div class="pick-row" id="blue-picks-1"></div>
@@ -66,11 +64,9 @@
             <div class="team-side red-side">
                 <div class="player-header">
                     <h2 id="red-name-display">PLAYER 2</h2>
-                    
                     <div id="red-ready-switch" class="ready-switch" onclick="toggleReady('red')">
                         <div class="switch-circle"></div>
                     </div>
-
                 </div>
                 <div class="ban-row" id="red-bans"></div>
                 <div class="pick-row" id="red-picks-1"></div>
@@ -92,6 +88,7 @@
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
+        let currentTeamTurn = ''; // Глобальная переменная для хранения чей сейчас ход
 
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
@@ -136,7 +133,6 @@
         
         socket.on('game_started', () => {
             isGameStarted = true;
-            // Прячем кнопки сразу при событии старта (для плавности)
             document.getElementById('blue-ready-switch').style.display = 'none';
             document.getElementById('red-ready-switch').style.display = 'none';
             document.getElementById('status').innerText = "DRAFT STARTED!";
@@ -175,7 +171,6 @@
 
         function toggleReady(role) {
             if (myRole !== role) return;
-            // Если игра уже началась, ничего не делаем (хотя кнопки уже скрыты)
             if (isGameStarted) return;
             socket.emit('player_ready', currentRoom);
         }
@@ -219,6 +214,8 @@
             
             el.onclick = () => {
                 if (!isGameStarted) return;
+                // Блокируем клик, если не наш ход
+                if (myRole !== currentTeamTurn) return;
                 
                 document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
                 
@@ -231,7 +228,8 @@
         }
 
         function confirmSelection() {
-            if (selectedCharId && currentRoom) {
+            // Двойная проверка на клиенте
+            if (selectedCharId && currentRoom && myRole === currentTeamTurn) {
                 socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
                 selectedCharId = null;
                 document.getElementById('confirm-btn').disabled = true;
@@ -241,6 +239,7 @@
 
         function updateUI(state) {
             isGameStarted = state.gameStarted;
+            currentTeamTurn = state.currentTeam; // Обновляем глобальную переменную хода
             
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
@@ -248,18 +247,14 @@
             const switchBlue = document.getElementById('blue-ready-switch');
             const switchRed = document.getElementById('red-ready-switch');
             
-            // ЛОГИКА СКРЫТИЯ КНОПОК
             if (state.gameStarted) {
                 switchBlue.style.display = 'none';
                 switchRed.style.display = 'none';
             } else {
                 switchBlue.style.display = 'flex';
                 switchRed.style.display = 'flex';
-                
-                // Обновляем визуальное состояние (ВКЛ/ВЫКЛ)
                 if (state.ready.blue) switchBlue.classList.add('ready-on');
                 else switchBlue.classList.remove('ready-on');
-
                 if (state.ready.red) switchRed.classList.add('ready-on');
                 else switchRed.classList.remove('ready-on');
             }
@@ -274,9 +269,32 @@
             } else if (isGameOver) {
                 statusText = "DRAFT COMPLETED";
             } else {
-                statusText = `${team} IS ${act} (Turn ${state.stepIndex})`;
+                // УБРАЛ (Turn X) по вашему запросу
+                statusText = `${team} IS ${act}`; 
             }
             document.getElementById('status').innerText = statusText;
+
+            // --- ЛОГИКА БЛОКИРОВКИ ИНТЕРФЕЙСА ---
+            const poolContainer = document.getElementById('char-pool-container');
+            const confirmBtn = document.getElementById('confirm-btn');
+            
+            // Если игра идет И сейчас мой ход
+            if (isGameStarted && !isGameOver && myRole === state.currentTeam) {
+                poolContainer.classList.remove('pool-locked');
+                confirmBtn.style.display = 'block'; // Показываем кнопку
+            } else {
+                // Если не мой ход или игра не идет
+                poolContainer.classList.add('pool-locked');
+                confirmBtn.style.display = 'none'; // Прячем кнопку
+                
+                // Сбрасываем выбор, если ход перешел другому, пока мы думали
+                if (selectedCharId) {
+                    selectedCharId = null;
+                    document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
+                    confirmBtn.disabled = true;
+                }
+            }
+            // -------------------------------------
 
             renderSlots(state);
 
