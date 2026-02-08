@@ -14,8 +14,8 @@
         <br><br>
         
         <select id="draft-type-select">
-            <option value="gitcg">GITCG CUP</option>
-            <option value="classic">Classic</option>
+            <option value="gitcg">GITCG CUP (Standard)</option>
+            <option value="classic">Classic (2 Bans / 3 Picks)</option>
         </select>
         <br><br>
 
@@ -59,10 +59,23 @@
         let currentRoom = '';
         let charsData = {};
 
-        const STEPS_BLUE_BAN = [1, 2, 5, 13, 21];
-        const STEPS_RED_BAN = [3, 4, 11, 19, 23];
-        const STEPS_BLUE_PICK = [6, 9, 10, 14, 17, 18, 22, 25, 26];
-        const STEPS_RED_PICK = [7, 8, 12, 15, 16, 20, 24, 27, 28];
+        // === КОНФИГУРАЦИЯ ШАГОВ ДЛЯ ПОДСВЕТКИ (Display Steps) ===
+        // Standard (GITCG)
+        const STEPS_GITCG = {
+            blueBan: [1, 2, 5, 13, 21],
+            redBan: [3, 4, 11, 19, 23],
+            bluePick: [6, 9, 10, 14, 17, 18, 22, 25, 26],
+            redPick: [7, 8, 12, 15, 16, 20, 24, 27, 28]
+        };
+
+        // Classic (10 steps total)
+        // Order: B-Ban(1), R-Ban(2), R-Pick(3), B-Ban(4), B-Pick(5), R-Ban(6), R-Pick(7), B-Pick(8), B-Pick(9), R-Pick(10)
+        const STEPS_CLASSIC = {
+            blueBan: [1, 4],
+            redBan: [2, 6],
+            bluePick: [5, 8, 9],
+            redPick: [3, 7, 10]
+        };
 
         function createGame() { 
             const nick = document.getElementById('nickname-input').value;
@@ -91,6 +104,12 @@
         });
 
         socket.on('update_state', updateUI);
+        
+        // ВАЖНО: Обработка конца игры, чтобы показать последний пик
+        socket.on('game_over', (state) => {
+            updateUI(state);
+            setTimeout(() => alert("Draft Completed!"), 500);
+        });
 
         function formatTime(s) {
             if (s < 0) s = 0;
@@ -165,7 +184,13 @@
             const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
             const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
             
-            document.getElementById('status').innerText = `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
+            // Если игра окончена (stepIndex > длины драфта), не показываем "BLUE IS..."
+            const isGameOver = (state.stepIndex > (state.draftType === 'classic' ? 10 : 28));
+            const statusText = isGameOver 
+                ? "DRAFT COMPLETED" 
+                : `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
+                
+            document.getElementById('status').innerText = statusText;
 
             renderSlots(state);
 
@@ -179,10 +204,22 @@
         function renderSlots(state) {
             let allFlat = [];
             Object.values(charsData).forEach(arr => allFlat.push(...arr));
+            
+            // Определяем настройки в зависимости от типа драфта
+            const isClassic = state.draftType === 'classic';
+            const steps = isClassic ? STEPS_CLASSIC : STEPS_GITCG;
+            
+            // Количество слотов
+            const banCount = isClassic ? 2 : 5;
+            const pickCount = isClassic ? 3 : 9; // В classic всего 3 пика
 
             const fill = (containerId, items, max, stepNumbers, isBan) => {
                 const div = document.getElementById(containerId);
                 div.innerHTML = '';
+                
+                // Если max == 0 (например второй ряд пиков в classic), очищаем и выходим
+                if (max === 0) return;
+
                 for (let i = 0; i < max; i++) {
                     const slot = document.createElement('div');
                     slot.className = 'slot-circle';
@@ -203,12 +240,25 @@
                 }
             };
 
-            fill('blue-bans', state.bans.filter(b => b.team === 'blue'), 5, STEPS_BLUE_BAN, true);
-            fill('red-bans', state.bans.filter(b => b.team === 'red'), 5, STEPS_RED_BAN, true);
-            fill('blue-picks-1', state.bluePicks.slice(0, 5), 5, STEPS_BLUE_PICK.slice(0, 5), false);
-            fill('blue-picks-2', state.bluePicks.slice(5, 9), 4, STEPS_BLUE_PICK.slice(5, 9), false);
-            fill('red-picks-1', state.redPicks.slice(0, 5), 5, STEPS_RED_PICK.slice(0, 5), false);
-            fill('red-picks-2', state.redPicks.slice(5, 9), 4, STEPS_RED_PICK.slice(5, 9), false);
+            // Рендер банов (динамическое количество)
+            fill('blue-bans', state.bans.filter(b => b.team === 'blue'), banCount, steps.blueBan, true);
+            fill('red-bans', state.bans.filter(b => b.team === 'red'), banCount, steps.redBan, true);
+
+            if (isClassic) {
+                // CLASSIC: Все 3 пика в первом ряду, второй ряд пустой
+                fill('blue-picks-1', state.bluePicks, 3, steps.bluePick, false);
+                fill('blue-picks-2', [], 0, [], false); // Скрыть второй ряд
+
+                fill('red-picks-1', state.redPicks, 3, steps.redPick, false);
+                fill('red-picks-2', [], 0, [], false); // Скрыть второй ряд
+            } else {
+                // STANDARD (GITCG): 5 в первом ряду, 4 во втором
+                fill('blue-picks-1', state.bluePicks.slice(0, 5), 5, steps.bluePick.slice(0, 5), false);
+                fill('blue-picks-2', state.bluePicks.slice(5, 9), 4, steps.bluePick.slice(5, 9), false);
+
+                fill('red-picks-1', state.redPicks.slice(0, 5), 5, steps.redPick.slice(0, 5), false);
+                fill('red-picks-2', state.redPicks.slice(5, 9), 4, steps.redPick.slice(5, 9), false);
+            }
         }
     </script>
 </body>
