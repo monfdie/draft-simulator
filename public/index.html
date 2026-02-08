@@ -2,187 +2,68 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Genshin Draft</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genshin Draft Pro</title>
+    <link rel="stylesheet" href="css/style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
     <div id="lobby-screen">
-        <h1>Genshin Draft</h1>
-        <input id="nickname-input" placeholder="Твой Никнейм" maxlength="15">
-        <br><br>
-        <button onclick="createGame()">Создать (Blue)</button>
-        <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
-            <input id="room-input" placeholder="Код комнаты">
-            <button onclick="joinGame()">Войти (Red)</button>
+        <div class="lobby-card">
+            <h1>Genshin Draft</h1>
+            <div class="input-group">
+                <input id="nickname-input" type="text" placeholder="Твой Никнейм" maxlength="12">
+            </div>
+            <div class="actions">
+                <button id="btn-create" class="btn-primary">Создать (Blue)</button>
+                <div class="divider">или</div>
+                <div class="join-group">
+                    <input id="room-input" type="text" placeholder="Код комнаты">
+                    <button id="btn-join" class="btn-secondary">Войти (Red)</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="game-screen" style="display:none;">
         <div class="header">
-            <div id="timer">60</div>
-            <div id="status">Ожидание...</div>
-        </div>
-
-        <div class="draft-area">
-            <div class="team-side blue-side">
-                <h2 id="blue-name-display">PLAYER 1</h2>
-                <div class="ban-row" id="blue-bans"></div>
-                <div class="pick-row" id="blue-picks-1"></div>
-                <div class="pick-row-small" id="blue-picks-2"></div>
+            <div class="timer-box">
+                <span id="timer">60</span>
             </div>
-
-            <div class="team-side red-side">
-                <h2 id="red-name-display">PLAYER 2</h2>
-                <div class="ban-row" id="red-bans"></div>
-                <div class="pick-row" id="red-picks-1"></div>
-                <div class="pick-row-small" id="red-picks-2"></div>
+            <div class="status-box">
+                <span id="status">Ожидание подключения...</span>
             </div>
         </div>
 
-        <div class="char-pool" id="char-pool-container"></div>
+        <div class="draft-board">
+            <div class="team-panel blue-panel">
+                <h2 id="blue-name">PLAYER 1</h2>
+                <div class="slots-container">
+                    <div class="row bans" id="blue-bans"></div>
+                    <div class="row picks" id="blue-picks-1"></div>
+                    <div class="row picks small" id="blue-picks-2"></div>
+                </div>
+            </div>
+
+            <div class="vs-divider">VS</div>
+
+            <div class="team-panel red-panel">
+                <h2 id="red-name">PLAYER 2</h2>
+                <div class="slots-container">
+                    <div class="row bans" id="red-bans"></div>
+                    <div class="row picks" id="red-picks-1"></div>
+                    <div class="row picks small" id="red-picks-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="char-pool-section">
+            <div class="pool-column" id="pool-left"></div>
+            <div class="pool-divider"></div>
+            <div class="pool-column" id="pool-right"></div>
+        </div>
     </div>
 
-    <script>
-        const socket = io();
-        let myRole = '';
-        let currentRoom = '';
-        let charsData = {};
-
-        const STEPS_BLUE_BAN = [1, 2, 5, 13, 21];
-        const STEPS_RED_BAN = [3, 4, 11, 19, 23];
-        const STEPS_BLUE_PICK = [6, 9, 10, 14, 17, 18, 22, 25, 26];
-        const STEPS_RED_PICK = [7, 8, 12, 15, 16, 20, 24, 27, 28];
-
-        function createGame() { 
-            const nick = document.getElementById('nickname-input').value;
-            if(!nick) return alert("Введите ник!");
-            socket.emit('create_game', nick); 
-        }
-
-        function joinGame() { 
-            const nick = document.getElementById('nickname-input').value;
-            const room = document.getElementById('room-input').value;
-            if(!nick || !room) return alert("Введите ник и код!");
-            socket.emit('join_game', {roomId: room, nickname: nick}); 
-        }
-
-        socket.on('init_game', (data) => {
-            myRole = data.role;
-            currentRoom = data.roomId;
-            charsData = data.chars;
-            document.getElementById('lobby-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'flex';
-            renderRows();
-            updateUI(data.state);
-        });
-
-        socket.on('update_state', updateUI);
-        socket.on('timer_tick', (t) => document.getElementById('timer').innerText = t);
-
-        function renderRows() {
-            const container = document.getElementById('char-pool-container');
-            container.innerHTML = '';
-            
-            const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
-            
-            elements.forEach(elem => {
-                const rowDiv = document.createElement('div');
-                rowDiv.className = `element-row row-${elem}`;
-                
-                // Делим персонажей пополам
-                const chars = charsData[elem];
-                const mid = Math.ceil(chars.length / 2);
-                const leftPart = chars.slice(0, mid);
-                const rightPart = chars.slice(mid);
-
-                // Левая часть
-                const leftDiv = document.createElement('div');
-                leftDiv.className = 'row-half left-half';
-                leftPart.forEach(char => {
-                    leftDiv.appendChild(createChar(char));
-                });
-
-                // Разделитель
-                const gapDiv = document.createElement('div');
-                gapDiv.className = 'row-gap';
-
-                // Правая часть
-                const rightDiv = document.createElement('div');
-                rightDiv.className = 'row-half right-half';
-                rightPart.forEach(char => {
-                    rightDiv.appendChild(createChar(char));
-                });
-
-                rowDiv.appendChild(leftDiv);
-                rowDiv.appendChild(gapDiv);
-                rowDiv.appendChild(rightDiv);
-                
-                container.appendChild(rowDiv);
-            });
-        }
-
-        function createChar(char) {
-            const el = document.createElement('div');
-            el.className = 'char-option';
-            el.id = `char-${char.id}`;
-            el.innerHTML = `<img src="${char.img}">`;
-            el.onclick = () => socket.emit('action', { roomId: currentRoom, charId: char.id });
-            return el;
-        }
-
-        function updateUI(state) {
-            document.getElementById('blue-name-display').innerText = state.blueName;
-            document.getElementById('red-name-display').innerText = state.redName;
-            const team = state.currentTeam === 'blue' ? 'Синие' : 'Красные';
-            const act = state.currentAction === 'ban' ? 'БАНЯТЬ' : 'ПИКАЮТ';
-            document.getElementById('status').innerText = `${team} ${act} (Ход ${state.stepIndex}) | Код: ${currentRoom}`;
-
-            renderSlots(state);
-
-            document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
-            state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
-            [...state.bluePicks, ...state.redPicks].forEach(id => {
-                document.getElementById(`char-${id}`)?.classList.add('disabled');
-            });
-        }
-
-        function renderSlots(state) {
-            let allFlat = [];
-            Object.values(charsData).forEach(arr => allFlat.push(...arr));
-
-            const fill = (containerId, items, max, stepNumbers, isBan) => {
-                const div = document.getElementById(containerId);
-                div.innerHTML = '';
-                for (let i = 0; i < max; i++) {
-                    const slot = document.createElement('div');
-                    slot.className = 'slot-circle';
-                    if (isBan) slot.classList.add('slot-ban');
-
-                    let charId = null;
-                    if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
-
-                    if (charId) {
-                        const char = allFlat.find(c => c.id === charId);
-                        if (char) slot.innerHTML = `<img src="${char.img}">`;
-                    } else {
-                        const stepNum = stepNumbers[i] || '';
-                        slot.innerHTML = `<span class="step-number">${stepNum}</span>`;
-                        if (state.stepIndex === stepNum) slot.classList.add('active-slot');
-                    }
-                    div.appendChild(slot);
-                }
-            };
-
-            fill('blue-bans', state.bans.filter(b => b.team === 'blue'), 5, STEPS_BLUE_BAN, true);
-            fill('red-bans', state.bans.filter(b => b.team === 'red'), 5, STEPS_RED_BAN, true);
-
-            fill('blue-picks-1', state.bluePicks.slice(0, 5), 5, STEPS_BLUE_PICK.slice(0, 5), false);
-            fill('blue-picks-2', state.bluePicks.slice(5, 9), 4, STEPS_BLUE_PICK.slice(5, 9), false);
-
-            fill('red-picks-1', state.redPicks.slice(0, 5), 5, STEPS_RED_PICK.slice(0, 5), false);
-            fill('red-picks-2', state.redPicks.slice(5, 9), 4, STEPS_RED_PICK.slice(5, 9), false);
-        }
-    </script>
+    <script type="module" src="js/App.js"></script>
 </body>
 </html>
