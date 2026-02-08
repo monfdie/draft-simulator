@@ -9,8 +9,16 @@
 <body>
     <div id="lobby-screen">
         <h1>Genshin Draft</h1>
+        
         <input id="nickname-input" placeholder="Your Nickname" maxlength="15">
         <br><br>
+        
+        <select id="draft-type-select">
+            <option value="gitcg">GITCG CUP</option>
+            <option value="classic">Classic</option>
+        </select>
+        <br><br>
+
         <button onclick="createGame()">Create Game (Blue)</button>
         <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
             <input id="room-input" placeholder="Room Code">
@@ -58,8 +66,11 @@
 
         function createGame() { 
             const nick = document.getElementById('nickname-input').value;
+            const type = document.getElementById('draft-type-select').value;
+            
             if(!nick) return alert("Please enter a nickname!");
-            socket.emit('create_game', nick); 
+            
+            socket.emit('create_game', { nickname: nick, draftType: type }); 
         }
 
         function joinGame() { 
