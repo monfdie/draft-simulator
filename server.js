@@ -157,42 +157,66 @@ const CHARACTERS_BY_ELEMENT = {
     ]
 };
 
-// DRAFT ORDER
-const DRAFT_ORDER = [
-    { team: 'blue', type: 'ban' }, { team: 'blue', type: 'ban' },
-    { team: 'red', type: 'ban' },  { team: 'red', type: 'ban' },
-    { team: 'blue', type: 'ban' }, 
-    { team: 'blue', type: 'pick' },
-    { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' },
-    { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
-    { team: 'red', type: 'ban' }, 
-    { team: 'red', type: 'pick' },
-    { team: 'blue', type: 'ban' }, 
-    { team: 'blue', type: 'pick' },
-    { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' },
-    { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
-    { team: 'red', type: 'ban' }, 
-    { team: 'red', type: 'pick' },
-    { team: 'blue', type: 'ban' }, 
-    { team: 'blue', type: 'pick' },
-    { team: 'red', type: 'ban' }, 
-    { team: 'red', type: 'pick' },
-    { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
-    { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' }
-];
+// === DRAFT SCHEMAS ===
+const DRAFT_SCHEMAS = {
+    // Ваш старый драфт, теперь с именем GITCG CUP
+    'gitcg': [
+        { team: 'blue', type: 'ban' }, { team: 'blue', type: 'ban' },
+        { team: 'red', type: 'ban' },  { team: 'red', type: 'ban' },
+        { team: 'blue', type: 'ban' }, 
+        { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' },
+        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'ban' }, 
+        { team: 'red', type: 'pick' },
+        { team: 'blue', type: 'ban' }, 
+        { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' },
+        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'ban' }, 
+        { team: 'red', type: 'pick' },
+        { team: 'blue', type: 'ban' }, 
+        { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'ban' }, 
+        { team: 'red', type: 'pick' },
+        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' }
+    ],
+    // Новый режим CLASSIC
+    'classic': [
+        { team: 'blue', type: 'ban' },      // 1. Игрок 1 бан
+        { team: 'red', type: 'ban' },       // 2. Игрок 2 бан
+        { team: 'red', type: 'pick' },      // 2. Игрок 2 пик
+        { team: 'blue', type: 'ban' },      // 1. Игрок 1 бан
+        { team: 'blue', type: 'pick' },     // 1. Игрок 1 пик
+        { team: 'red', type: 'ban' },       // 2. Игрок 2 бан
+        { team: 'red', type: 'pick' },      // 2. Игрок 2 пик
+        { team: 'blue', type: 'pick' },     // 1. Игрок 1 пик (пик)
+        { team: 'blue', type: 'pick' },     // 1. Игрок 1 пик (пик)
+        { team: 'red', type: 'pick' }       // 2. Игрок 2 пик
+    ]
+};
 
 const sessions = {};
 
 io.on('connection', (socket) => {
-    socket.on('create_game', (nickname) => {
+    // При создании игры принимаем nickname и draftType
+    socket.on('create_game', ({ nickname, draftType }) => {
         const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+        
+        // Выбираем схему, по умолчанию gitcg
+        const selectedSchema = DRAFT_SCHEMAS[draftType] || DRAFT_SCHEMAS['gitcg'];
+
         sessions[roomId] = {
             id: roomId, bluePlayer: socket.id, redPlayer: null,
             blueName: nickname || 'Player 1', redName: 'Waiting...',
             stepIndex: 0, 
-            currentTeam: 'blue', currentAction: 'ban',
+            draftType: draftType || 'gitcg',
+            draftOrder: selectedSchema, // Сохраняем выбранную последовательность
+            currentTeam: selectedSchema[0].team, 
+            currentAction: selectedSchema[0].type,
             timer: 60, 
-            blueReserve: 300, // 5 минут резерв
+            blueReserve: 300, 
             redReserve: 300, 
             timerInterval: null,
             bans: [], 
@@ -248,15 +272,15 @@ io.on('connection', (socket) => {
 function nextStep(roomId) {
     const session = sessions[roomId];
     session.stepIndex++;
-    session.timer = 60; // Сброс основного таймера
+    session.timer = 60; // Сброс таймера
 
-    if (session.stepIndex >= DRAFT_ORDER.length) {
+    if (session.stepIndex >= session.draftOrder.length) {
         io.to(roomId).emit('game_over', getPublicState(session));
         clearInterval(session.timerInterval);
         return;
     }
 
-    const config = DRAFT_ORDER[session.stepIndex];
+    const config = session.draftOrder[session.stepIndex];
     session.currentTeam = config.team;
     session.currentAction = config.type;
 
@@ -271,7 +295,6 @@ function startTimer(roomId) {
         if (session.timer > 0) {
             session.timer--;
         } else {
-            // Тратим резерв
             if (session.currentTeam === 'blue') {
                 session.blueReserve--;
                 if (session.blueReserve < 0) return autoPick(roomId);
@@ -317,7 +340,8 @@ function getPublicState(session) {
         stepIndex: session.stepIndex + 1,
         currentTeam: session.currentTeam, currentAction: session.currentAction,
         bans: session.bans, bluePicks: session.bluePicks, redPicks: session.redPicks,
-        blueName: session.blueName, redName: session.redName
+        blueName: session.blueName, redName: session.redName,
+        draftType: session.draftType
     };
 }
 
