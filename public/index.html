@@ -40,9 +40,7 @@
 
     <div id="game-screen" style="display:none;">
         <div class="header">
-            <div id="room-display" onclick="copyToClipboard()" title="Click to copy code">
-                CODE: ----
-            </div>
+            <div id="room-display">CODE: ----</div>
             
             <div class="reserve-timer blue-res">Reserve: <span id="blue-res">5:00</span></div>
             <div id="timer">60</div>
@@ -54,9 +52,11 @@
             <div class="team-side blue-side">
                 <div class="player-header">
                     <h2 id="blue-name-display">PLAYER 1</h2>
+                    
                     <div id="blue-ready-switch" class="ready-switch" onclick="toggleReady('blue')">
                         <div class="switch-circle"></div>
                     </div>
+
                 </div>
                 <div class="ban-row" id="blue-bans"></div>
                 <div class="pick-row" id="blue-picks-1"></div>
@@ -66,9 +66,11 @@
             <div class="team-side red-side">
                 <div class="player-header">
                     <h2 id="red-name-display">PLAYER 2</h2>
+                    
                     <div id="red-ready-switch" class="ready-switch" onclick="toggleReady('red')">
                         <div class="switch-circle"></div>
                     </div>
+
                 </div>
                 <div class="ban-row" id="red-bans"></div>
                 <div class="pick-row" id="red-picks-1"></div>
@@ -90,7 +92,6 @@
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
-        let lastState = null;
 
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
@@ -124,68 +125,21 @@
             myRole = data.role;
             currentRoom = data.roomId;
             charsData = data.chars;
-            
-            // Вставляем код и иконку
-            document.getElementById('room-display').innerHTML = `
-                CODE: <span style="color: white; font-weight: bold; margin-left: 5px;">${currentRoom}</span>
-                <svg class="copy-icon" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px;">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-            `;
-            
+            document.getElementById('room-display').innerText = `CODE: ${currentRoom}`;
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
             renderRows();
             updateUI(data.state);
         });
 
-        // ИСПРАВЛЕННАЯ ФУНКЦИЯ КОПИРОВАНИЯ
-        function copyToClipboard() {
-            if(!currentRoom) return;
-
-            const animateSuccess = () => {
-                const el = document.getElementById('room-display');
-                el.classList.add('copied-success');
-                setTimeout(() => el.classList.remove('copied-success'), 800);
-            };
-
-            // Метод 1: Современный API
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(currentRoom)
-                    .then(animateSuccess)
-                    .catch(err => console.error(err));
-            } else {
-                // Метод 2: Старый надежный способ (для http)
-                const textArea = document.createElement("textarea");
-                textArea.value = currentRoom;
-                textArea.style.position = "fixed";
-                textArea.style.left = "-9999px";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    animateSuccess();
-                } catch (err) {
-                    console.error('Copy failed', err);
-                    alert("Code: " + currentRoom);
-                }
-                document.body.removeChild(textArea);
-            }
-        }
-
-        socket.on('update_state', (state) => {
-            lastState = state;
-            updateUI(state);
-        });
+        socket.on('update_state', updateUI);
         
         socket.on('game_started', () => {
             isGameStarted = true;
+            // Прячем кнопки сразу при событии старта (для плавности)
             document.getElementById('blue-ready-switch').style.display = 'none';
             document.getElementById('red-ready-switch').style.display = 'none';
             document.getElementById('status').innerText = "DRAFT STARTED!";
-            if (lastState) updateUI(lastState);
         });
 
         socket.on('game_over', (state) => {
@@ -221,11 +175,11 @@
 
         function toggleReady(role) {
             if (myRole !== role) return;
+            // Если игра уже началась, ничего не делаем (хотя кнопки уже скрыты)
             if (isGameStarted) return;
             socket.emit('player_ready', currentRoom);
         }
 
-        // ОБНОВЛЕННАЯ ФУНКЦИЯ: Убрана дырка посередине
         function renderRows() {
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
@@ -234,12 +188,25 @@
             elements.forEach(elem => {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `element-row row-${elem}`;
-                
-                // Просто добавляем всех подряд, без разделения на половинки
-                charsData[elem].forEach(char => {
-                    rowDiv.appendChild(createChar(char));
-                });
+                const chars = charsData[elem];
+                const mid = Math.ceil(chars.length / 2);
+                const leftPart = chars.slice(0, mid);
+                const rightPart = chars.slice(mid);
 
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'row-half left-half';
+                leftPart.forEach(char => leftDiv.appendChild(createChar(char)));
+
+                const gapDiv = document.createElement('div');
+                gapDiv.className = 'row-gap';
+
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'row-half right-half';
+                rightPart.forEach(char => rightDiv.appendChild(createChar(char)));
+
+                rowDiv.appendChild(leftDiv);
+                rowDiv.appendChild(gapDiv);
+                rowDiv.appendChild(rightDiv);
                 container.appendChild(rowDiv);
             });
         }
@@ -264,10 +231,6 @@
         }
 
         function confirmSelection() {
-            if (lastState && myRole !== lastState.currentTeam) {
-                return; // Не отправляем, если не наш ход
-            }
-
             if (selectedCharId && currentRoom) {
                 socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
                 selectedCharId = null;
@@ -278,7 +241,6 @@
 
         function updateUI(state) {
             isGameStarted = state.gameStarted;
-            lastState = state;
             
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
@@ -286,14 +248,18 @@
             const switchBlue = document.getElementById('blue-ready-switch');
             const switchRed = document.getElementById('red-ready-switch');
             
+            // ЛОГИКА СКРЫТИЯ КНОПОК
             if (state.gameStarted) {
                 switchBlue.style.display = 'none';
                 switchRed.style.display = 'none';
             } else {
                 switchBlue.style.display = 'flex';
                 switchRed.style.display = 'flex';
+                
+                // Обновляем визуальное состояние (ВКЛ/ВЫКЛ)
                 if (state.ready.blue) switchBlue.classList.add('ready-on');
                 else switchBlue.classList.remove('ready-on');
+
                 if (state.ready.red) switchRed.classList.add('ready-on');
                 else switchRed.classList.remove('ready-on');
             }
@@ -308,7 +274,7 @@
             } else if (isGameOver) {
                 statusText = "DRAFT COMPLETED";
             } else {
-                statusText = `${team} IS ${act}`; 
+                statusText = `${team} IS ${act} (Turn ${state.stepIndex})`;
             }
             document.getElementById('status').innerText = statusText;
 
