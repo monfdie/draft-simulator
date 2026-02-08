@@ -9,84 +9,51 @@
 <body>
     <div id="lobby-screen">
         <h1>Genshin Draft</h1>
-        <div class="lobby-card">
-            <input id="nickname-input" placeholder="Твой Никнейм" maxlength="12">
-            <div class="lobby-actions">
-                <button onclick="createGame()" class="btn-create">Создать (Blue)</button>
-                <div class="join-block">
-                    <input id="room-input" placeholder="Код комнаты">
-                    <button onclick="joinGame()" class="btn-join">Войти (Red)</button>
-                </div>
-            </div>
+        <input id="nickname-input" placeholder="Твой Никнейм" maxlength="15">
+        <br><br>
+        <button onclick="createGame()">Создать (Blue)</button>
+        <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
+            <input id="room-input" placeholder="Код комнаты">
+            <button onclick="joinGame()">Войти (Red)</button>
         </div>
     </div>
 
     <div id="game-screen" style="display:none;">
-        
-        <div class="top-bar">
-            <div class="player-info blue-info">
+        <div class="header">
+            <div id="timer">60</div>
+            <div id="status">Ожидание...</div>
+        </div>
+
+        <div class="draft-area">
+            <div class="team-side blue-side">
                 <h2 id="blue-name-display">PLAYER 1</h2>
+                <div class="ban-row" id="blue-bans"></div>
+                <div class="pick-row" id="blue-picks-1"></div>
+                <div class="pick-row-small" id="blue-picks-2"></div>
             </div>
-            <div class="timer-box">
-                <span id="timer">60</span>
-                <div id="status">Ожидание...</div>
-            </div>
-            <div class="player-info red-info">
+
+            <div class="team-side red-side">
                 <h2 id="red-name-display">PLAYER 2</h2>
+                <div class="ban-row" id="red-bans"></div>
+                <div class="pick-row" id="red-picks-1"></div>
+                <div class="pick-row-small" id="red-picks-2"></div>
             </div>
         </div>
 
-        <div class="draft-board">
-            
-            <div class="draft-row ban-section">
-                <div class="slots-group left" id="blue-bans">
-                    </div>
-                <div class="row-label">BANS</div>
-                <div class="slots-group right" id="red-bans">
-                    </div>
-            </div>
-
-            <div class="draft-row pick-section">
-                <div class="slots-group left" id="blue-picks">
-                    </div>
-                <div class="row-label">PICKS</div>
-                <div class="slots-group right" id="red-picks">
-                    </div>
-            </div>
-        </div>
-
-        <div class="divider-line"></div>
-
-        <div class="char-pool" id="char-pool-container">
-            </div>
+        <div class="char-pool" id="char-pool-container"></div>
     </div>
 
     <script>
         const socket = io();
         let myRole = '';
+        let currentRoom = '';
         let charsData = {};
 
-        // === Инициализация слотов при загрузке ===
-        function initSlots() {
-            // Создаем пустые кружки для банов (по 5 штук)
-            createEmptySlots('blue-bans', 5, 'ban-slot');
-            createEmptySlots('red-bans', 5, 'ban-slot');
-            // Создаем пустые кружки для пиков (по 5 штук)
-            createEmptySlots('blue-picks', 5, 'pick-slot');
-            createEmptySlots('red-picks', 5, 'pick-slot');
-        }
+        const STEPS_BLUE_BAN = [1, 2, 5, 13, 21];
+        const STEPS_RED_BAN = [3, 4, 11, 19, 23];
+        const STEPS_BLUE_PICK = [6, 9, 10, 14, 17, 18, 22, 25, 26];
+        const STEPS_RED_PICK = [7, 8, 12, 15, 16, 20, 24, 27, 28];
 
-        function createEmptySlots(containerId, count, className) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            for(let i=0; i<count; i++) {
-                const div = document.createElement('div');
-                div.className = `slot-circle ${className}`;
-                container.appendChild(div);
-            }
-        }
-
-        // === ЛОГИКА ===
         function createGame() { 
             const nick = document.getElementById('nickname-input').value;
             if(!nick) return alert("Введите ник!");
@@ -102,148 +69,120 @@
 
         socket.on('init_game', (data) => {
             myRole = data.role;
+            currentRoom = data.roomId;
             charsData = data.chars;
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
-            
-            initSlots();
-            renderCharPool();
+            renderRows();
             updateUI(data.state);
         });
 
         socket.on('update_state', updateUI);
-        socket.on('game_over', (state) => {
-            updateUI(state);
-            document.getElementById('status').innerText = "ГГ ВП (Draft Complete)";
-            document.getElementById('status').style.color = "#0f0";
-        });
-        socket.on('timer_tick', (t) => {
-            const el = document.getElementById('timer');
-            el.innerText = t;
-            if(t < 10) el.style.color = 'red';
-            else el.style.color = '#fff';
-        });
-        socket.on('error_msg', (msg) => alert(msg));
+        socket.on('timer_tick', (t) => document.getElementById('timer').innerText = t);
 
-        // === РЕНДЕР ПУЛА (Сетка) ===
-        function renderCharPool() {
+        function renderRows() {
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
             
-            // Элементы в том же порядке, что и в JS
             const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
             
             elements.forEach(elem => {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `element-row row-${elem}`;
                 
-                const chars = charsData[elem] || [];
-                // Разделяем на левую и правую часть (как "книжка")
+                // Делим персонажей пополам
+                const chars = charsData[elem];
                 const mid = Math.ceil(chars.length / 2);
                 const leftPart = chars.slice(0, mid);
                 const rightPart = chars.slice(mid);
 
+                // Левая часть
                 const leftDiv = document.createElement('div');
-                leftDiv.className = 'pool-side left-side';
-                leftPart.forEach(c => leftDiv.appendChild(createCharIcon(c)));
+                leftDiv.className = 'row-half left-half';
+                leftPart.forEach(char => {
+                    leftDiv.appendChild(createChar(char));
+                });
 
+                // Разделитель
+                const gapDiv = document.createElement('div');
+                gapDiv.className = 'row-gap';
+
+                // Правая часть
                 const rightDiv = document.createElement('div');
-                rightDiv.className = 'pool-side right-side';
-                rightPart.forEach(c => rightDiv.appendChild(createCharIcon(c)));
+                rightDiv.className = 'row-half right-half';
+                rightPart.forEach(char => {
+                    rightDiv.appendChild(createChar(char));
+                });
 
                 rowDiv.appendChild(leftDiv);
-                rowDiv.appendChild(rightDiv); // Gap делается через CSS margins
+                rowDiv.appendChild(gapDiv);
+                rowDiv.appendChild(rightDiv);
+                
                 container.appendChild(rowDiv);
             });
         }
 
-        function createCharIcon(char) {
-            const div = document.createElement('div');
-            div.className = 'char-option';
-            div.id = `char-${char.id}`;
-            div.onclick = () => tryPick(char.id);
-            
-            const img = document.createElement('img');
-            img.src = char.img;
-            div.appendChild(img);
-            
-            // Оверлей для статуса (галочка или крестик)
-            const overlay = document.createElement('div');
-            overlay.className = 'status-overlay';
-            div.appendChild(overlay);
-
-            return div;
+        function createChar(char) {
+            const el = document.createElement('div');
+            el.className = 'char-option';
+            el.id = `char-${char.id}`;
+            el.innerHTML = `<img src="${char.img}">`;
+            el.onclick = () => socket.emit('action', { roomId: currentRoom, charId: char.id });
+            return el;
         }
 
-        function tryPick(charId) {
-            socket.emit('action', { roomId: currentRoom, charId: charId });
-        }
-
-        // === ОБНОВЛЕНИЕ UI ===
         function updateUI(state) {
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
-            
-            const statusText = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
-            const activeTeam = state.currentTeam === 'blue' ? state.blueName : state.redName;
-            document.getElementById('status').innerText = `${statusText}: ${activeTeam}`;
+            const team = state.currentTeam === 'blue' ? 'Синие' : 'Красные';
+            const act = state.currentAction === 'ban' ? 'БАНЯТЬ' : 'ПИКАЮТ';
+            document.getElementById('status').innerText = `${team} ${act} (Ход ${state.stepIndex}) | Код: ${currentRoom}`;
 
-            // 1. Заполняем слоты (Баны и Пики)
-            fillSlots('blue-bans', state.bans.filter(b => b.team === 'blue'));
-            fillSlots('red-bans', state.bans.filter(b => b.team === 'red'));
-            fillSlots('blue-picks', state.bluePicks);
-            fillSlots('red-picks', state.redPicks);
+            renderSlots(state);
 
-            // 2. Обновляем статус в общем пуле (серый, крестик, галочка)
-            document.querySelectorAll('.char-option').forEach(el => {
-                el.classList.remove('disabled', 'is-banned', 'is-picked');
-            });
-
-            // Баны -> Красный крестик
-            state.bans.forEach(b => {
-                const el = document.getElementById(`char-${b.id}`);
-                if(el) el.classList.add('disabled', 'is-banned');
-            });
-
-            // Пики -> Синяя/Оранжевая галочка (или просто галочка)
+            document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
+            state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
             [...state.bluePicks, ...state.redPicks].forEach(id => {
-                const el = document.getElementById(`char-${id}`);
-                if(el) el.classList.add('disabled', 'is-picked');
+                document.getElementById(`char-${id}`)?.classList.add('disabled');
             });
         }
 
-        function fillSlots(containerId, items) {
-            const container = document.getElementById(containerId);
-            const slots = container.children;
-            // items - массив объектов (для банов) или ID (для пиков)
-            for(let i=0; i<slots.length; i++) {
-                const slot = slots[i];
-                slot.innerHTML = ''; // Чистим
-                
-                if (items[i]) {
-                    const id = items[i].id || items[i]; // Обработка структуры
-                    const charObj = findCharById(id);
-                    if(charObj) {
-                        const img = document.createElement('img');
-                        img.src = charObj.img;
-                        slot.appendChild(img);
-                        slot.classList.add('filled');
+        function renderSlots(state) {
+            let allFlat = [];
+            Object.values(charsData).forEach(arr => allFlat.push(...arr));
+
+            const fill = (containerId, items, max, stepNumbers, isBan) => {
+                const div = document.getElementById(containerId);
+                div.innerHTML = '';
+                for (let i = 0; i < max; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'slot-circle';
+                    if (isBan) slot.classList.add('slot-ban');
+
+                    let charId = null;
+                    if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
+
+                    if (charId) {
+                        const char = allFlat.find(c => c.id === charId);
+                        if (char) slot.innerHTML = `<img src="${char.img}">`;
+                    } else {
+                        const stepNum = stepNumbers[i] || '';
+                        slot.innerHTML = `<span class="step-number">${stepNum}</span>`;
+                        if (state.stepIndex === stepNum) slot.classList.add('active-slot');
                     }
-                } else {
-                    slot.classList.remove('filled');
+                    div.appendChild(slot);
                 }
-            }
-        }
+            };
 
-        function findCharById(id) {
-            for (const key in charsData) {
-                const found = charsData[key].find(c => c.id === id);
-                if (found) return found;
-            }
-            return null;
-        }
+            fill('blue-bans', state.bans.filter(b => b.team === 'blue'), 5, STEPS_BLUE_BAN, true);
+            fill('red-bans', state.bans.filter(b => b.team === 'red'), 5, STEPS_RED_BAN, true);
 
-        let currentRoom = ''; // Будет заполнено при init_game
+            fill('blue-picks-1', state.bluePicks.slice(0, 5), 5, STEPS_BLUE_PICK.slice(0, 5), false);
+            fill('blue-picks-2', state.bluePicks.slice(5, 9), 4, STEPS_BLUE_PICK.slice(5, 9), false);
+
+            fill('red-picks-1', state.redPicks.slice(0, 5), 5, STEPS_RED_PICK.slice(0, 5), false);
+            fill('red-picks-2', state.redPicks.slice(5, 9), 4, STEPS_RED_PICK.slice(5, 9), false);
+        }
     </script>
 </body>
 </html>
