@@ -40,7 +40,9 @@
 
     <div id="game-screen" style="display:none;">
         <div class="header">
-            <div id="room-display">CODE: ----</div>
+            <div id="room-display" onclick="copyToClipboard()" title="Click to copy code">
+                CODE: ----
+            </div>
             
             <div class="reserve-timer blue-res">Reserve: <span id="blue-res">5:00</span></div>
             <div id="timer">60</div>
@@ -88,7 +90,7 @@
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
-        let currentTeamTurn = ''; // Глобальная переменная для хранения чей сейчас ход
+        let lastState = null;
 
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
@@ -122,20 +124,44 @@
             myRole = data.role;
             currentRoom = data.roomId;
             charsData = data.chars;
-            document.getElementById('room-display').innerText = `CODE: ${currentRoom}`;
+            
+            // ВСТАВЛЯЕМ КОД + ИКОНКУ (SVG)
+            document.getElementById('room-display').innerHTML = `
+                CODE: <span style="color: white; font-weight: bold; margin-left: 5px;">${currentRoom}</span>
+                <svg class="copy-icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+            `;
+            
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
             renderRows();
             updateUI(data.state);
         });
 
-        socket.on('update_state', updateUI);
+        // ФУНКЦИЯ КОПИРОВАНИЯ
+        function copyToClipboard() {
+            if(!currentRoom) return;
+            navigator.clipboard.writeText(currentRoom).then(() => {
+                const el = document.getElementById('room-display');
+                // Визуальный эффект
+                el.classList.add('copied-success');
+                setTimeout(() => el.classList.remove('copied-success'), 800);
+            });
+        }
+
+        socket.on('update_state', (state) => {
+            lastState = state;
+            updateUI(state);
+        });
         
         socket.on('game_started', () => {
             isGameStarted = true;
             document.getElementById('blue-ready-switch').style.display = 'none';
             document.getElementById('red-ready-switch').style.display = 'none';
             document.getElementById('status').innerText = "DRAFT STARTED!";
+            if (lastState) updateUI(lastState);
         });
 
         socket.on('game_over', (state) => {
@@ -214,9 +240,8 @@
             
             el.onclick = () => {
                 if (!isGameStarted) return;
-                // Блокируем клик, если не наш ход
-                if (myRole !== currentTeamTurn) return;
-                
+                if (lastState && myRole !== lastState.currentTeam) return;
+
                 document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
                 
                 selectedCharId = char.id;
@@ -228,8 +253,9 @@
         }
 
         function confirmSelection() {
-            // Двойная проверка на клиенте
-            if (selectedCharId && currentRoom && myRole === currentTeamTurn) {
+            if (selectedCharId && currentRoom) {
+                if (lastState && myRole !== lastState.currentTeam) return;
+
                 socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
                 selectedCharId = null;
                 document.getElementById('confirm-btn').disabled = true;
@@ -239,7 +265,7 @@
 
         function updateUI(state) {
             isGameStarted = state.gameStarted;
-            currentTeamTurn = state.currentTeam; // Обновляем глобальную переменную хода
+            lastState = state;
             
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
@@ -269,32 +295,26 @@
             } else if (isGameOver) {
                 statusText = "DRAFT COMPLETED";
             } else {
-                // УБРАЛ (Turn X) по вашему запросу
                 statusText = `${team} IS ${act}`; 
             }
             document.getElementById('status').innerText = statusText;
 
-            // --- ЛОГИКА БЛОКИРОВКИ ИНТЕРФЕЙСА ---
             const poolContainer = document.getElementById('char-pool-container');
             const confirmBtn = document.getElementById('confirm-btn');
             
-            // Если игра идет И сейчас мой ход
-            if (isGameStarted && !isGameOver && myRole === state.currentTeam) {
+            if (state.gameStarted && !isGameOver && myRole === state.currentTeam) {
                 poolContainer.classList.remove('pool-locked');
-                confirmBtn.style.display = 'block'; // Показываем кнопку
+                confirmBtn.style.display = 'block'; 
             } else {
-                // Если не мой ход или игра не идет
                 poolContainer.classList.add('pool-locked');
-                confirmBtn.style.display = 'none'; // Прячем кнопку
+                confirmBtn.style.display = 'none'; 
                 
-                // Сбрасываем выбор, если ход перешел другому, пока мы думали
                 if (selectedCharId) {
                     selectedCharId = null;
                     document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
                     confirmBtn.disabled = true;
                 }
             }
-            // -------------------------------------
 
             renderSlots(state);
 
