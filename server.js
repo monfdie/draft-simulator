@@ -265,10 +265,34 @@ function nextStep(roomId) {
 function startTimer(roomId) {
     const session = sessions[roomId];
     if (session.timerInterval) clearInterval(session.timerInterval);
+    
     session.timerInterval = setInterval(() => {
-        session.timer--;
-        io.to(roomId).emit('timer_tick', session.timer);
-        if (session.timer <= 0) autoPick(roomId);
+        // Если есть основное время - тратим его
+        if (session.timer > 0) {
+            session.timer--;
+        } 
+        // Если основное вышло - тратим резерв текущей команды
+        else {
+            if (session.currentTeam === 'blue') {
+                session.blueReserve--;
+            } else {
+                session.redReserve--;
+            }
+        }
+
+        // Проверка на проигрыш по времени (если резерв < 0)
+        if (session.currentTeam === 'blue' && session.blueReserve < 0) {
+            autoPick(roomId); // Или game over
+        } else if (session.currentTeam === 'red' && session.redReserve < 0) {
+            autoPick(roomId);
+        } else {
+            // Отправляем всё состояние таймеров
+            io.to(roomId).emit('timer_tick', {
+                main: session.timer,
+                blueReserve: session.blueReserve,
+                redReserve: session.redReserve
+            });
+        }
     }, 1000);
 }
 
@@ -306,4 +330,5 @@ function getPublicState(session) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server started on :${PORT}`));
+
 
