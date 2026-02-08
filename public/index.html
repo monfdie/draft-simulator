@@ -31,7 +31,8 @@
             </div>
 
             <div class="input-group">
-                <input id="room-input" placeholder="Room Code">
+                <label>ROOM CODE (TO JOIN)</label>
+                <input id="room-input" placeholder="Enter Code">
             </div>
             <button class="btn-secondary" onclick="joinGame()">Join Game (Red)</button>
         </div>
@@ -68,7 +69,7 @@
         </div>
 
         <div class="controls-area">
-            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>SELECT</button>
+            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>CONFIRM PICK</button>
         </div>
 
         <div class="char-pool" id="char-pool-container"></div>
@@ -79,8 +80,6 @@
         let myRole = '';
         let currentRoom = '';
         let charsData = {};
-        
-        // Локальное состояние для выбора
         let selectedCharId = null; 
         let isGameStarted = false;
 
@@ -161,7 +160,6 @@
         });
 
         function toggleReady(role) {
-            // Разрешаем нажимать только свою кнопку
             if (myRole !== role) return;
             socket.emit('player_ready', currentRoom);
         }
@@ -203,27 +201,23 @@
             el.id = `char-${char.id}`;
             el.innerHTML = `<img src="${char.img}">`;
             
-            // НОВАЯ ЛОГИКА: Просто выделяем, не отправляем
             el.onclick = () => {
-                if (!isGameStarted) return; // Нельзя выбирать до старта
+                if (!isGameStarted) return;
                 
-                // Убираем выделение со старого
                 document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
                 
                 selectedCharId = char.id;
                 el.classList.add('selected-pending');
                 
-                // Активируем кнопку Confirm
                 document.getElementById('confirm-btn').disabled = false;
             };
             return el;
         }
 
-        // ОТПРАВКА НА СЕРВЕР ТОЛЬКО ЗДЕСЬ
         function confirmSelection() {
             if (selectedCharId && currentRoom) {
                 socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
-                selectedCharId = null; // Сброс
+                selectedCharId = null;
                 document.getElementById('confirm-btn').disabled = true;
                 document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
             }
@@ -235,7 +229,6 @@
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
 
-            // Обновление кнопок Ready
             const btnBlue = document.getElementById('blue-ready-btn');
             const btnRed = document.getElementById('red-ready-btn');
             
@@ -248,7 +241,6 @@
                 btnRed.innerText = "READY!";
             }
 
-            // Статус
             const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
             const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
             const isGameOver = (state.stepIndex > (state.draftType === 'classic' ? 10 : 28));
