@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>Genshin Draft</title>
@@ -9,20 +9,19 @@
 <body>
     <div id="lobby-screen">
         <h1>Genshin Draft</h1>
-        <input id="nickname-input" placeholder="Your Nickname" maxlength="15">
+        <input id="nickname-input" placeholder="Твой Никнейм" maxlength="15">
         <br><br>
-        <button onclick="createGame()">Create (Blue)</button>
+        <button onclick="createGame()">Создать (Blue)</button>
         <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
-            <input id="room-input" placeholder="Room Code">
-            <button onclick="joinGame()">Join (Red)</button>
+            <input id="room-input" placeholder="Код комнаты">
+            <button onclick="joinGame()">Войти (Red)</button>
         </div>
     </div>
 
     <div id="game-screen" style="display:none;">
         <div class="header">
-            <div id="room-info">Code: <span id="room-code-display">---</span></div>
             <div id="timer">60</div>
-            <div id="status">Waiting...</div>
+            <div id="status">Ожидание...</div>
         </div>
 
         <div class="draft-area">
@@ -41,11 +40,7 @@
             </div>
         </div>
 
-        <div class="char-pool">
-            <div class="pool-column" id="pool-left"></div>
-            <div class="pool-gap"></div>
-            <div class="pool-column" id="pool-right"></div>
-        </div>
+        <div class="char-pool" id="char-pool-container"></div>
     </div>
 
     <script>
@@ -61,14 +56,14 @@
 
         function createGame() { 
             const nick = document.getElementById('nickname-input').value;
-            if(!nick) return alert("Enter nickname!");
+            if(!nick) return alert("Введите ник!");
             socket.emit('create_game', nick); 
         }
 
         function joinGame() { 
             const nick = document.getElementById('nickname-input').value;
             const room = document.getElementById('room-input').value;
-            if(!nick || !room) return alert("Enter nickname and code!");
+            if(!nick || !room) return alert("Введите ник и код!");
             socket.emit('join_game', {roomId: room, nickname: nick}); 
         }
 
@@ -76,62 +71,77 @@
             myRole = data.role;
             currentRoom = data.roomId;
             charsData = data.chars;
-            
-            document.getElementById('room-code-display').innerText = currentRoom;
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
-            
             renderRows();
             updateUI(data.state);
         });
 
         socket.on('update_state', updateUI);
         socket.on('timer_tick', (t) => document.getElementById('timer').innerText = t);
-        socket.on('error_msg', (msg) => alert(msg));
 
         function renderRows() {
-            const leftContainer = document.getElementById('pool-left');
-            const rightContainer = document.getElementById('pool-right');
-            leftContainer.innerHTML = '';
-            rightContainer.innerHTML = '';
+            const container = document.getElementById('char-pool-container');
+            container.innerHTML = '';
             
-            const leftElements = ['cryo', 'hydro', 'pyro', 'electro'];
-            const rightElements = ['anemo', 'geo', 'dendro'];
+            const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
             
-            const createRow = (elem) => {
+            elements.forEach(elem => {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `element-row row-${elem}`;
-                charsData[elem].forEach(char => {
-                    const el = document.createElement('div');
-                    el.className = 'char-option';
-                    el.id = `char-${char.id}`;
-                    el.innerHTML = `<img src="${char.img}">`;
-                    el.onclick = () => socket.emit('action', { roomId: currentRoom, charId: char.id });
-                    rowDiv.appendChild(el);
-                });
-                return rowDiv;
-            };
+                
+                // Делим персонажей пополам
+                const chars = charsData[elem];
+                const mid = Math.ceil(chars.length / 2);
+                const leftPart = chars.slice(0, mid);
+                const rightPart = chars.slice(mid);
 
-            leftElements.forEach(e => leftContainer.appendChild(createRow(e)));
-            rightElements.forEach(e => rightContainer.appendChild(createRow(e)));
+                // Левая часть
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'row-half left-half';
+                leftPart.forEach(char => {
+                    leftDiv.appendChild(createChar(char));
+                });
+
+                // Разделитель
+                const gapDiv = document.createElement('div');
+                gapDiv.className = 'row-gap';
+
+                // Правая часть
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'row-half right-half';
+                rightPart.forEach(char => {
+                    rightDiv.appendChild(createChar(char));
+                });
+
+                rowDiv.appendChild(leftDiv);
+                rowDiv.appendChild(gapDiv);
+                rowDiv.appendChild(rightDiv);
+                
+                container.appendChild(rowDiv);
+            });
+        }
+
+        function createChar(char) {
+            const el = document.createElement('div');
+            el.className = 'char-option';
+            el.id = `char-${char.id}`;
+            el.innerHTML = `<img src="${char.img}">`;
+            el.onclick = () => socket.emit('action', { roomId: currentRoom, charId: char.id });
+            return el;
         }
 
         function updateUI(state) {
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
-            
-            const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
-            const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
-            document.getElementById('status').innerText = `${team} ${act}`;
-            document.getElementById('status').style.color = state.currentTeam === 'blue' ? '#4facfe' : '#ff5555';
+            const team = state.currentTeam === 'blue' ? 'Синие' : 'Красные';
+            const act = state.currentAction === 'ban' ? 'БАНЯТЬ' : 'ПИКАЮТ';
+            document.getElementById('status').innerText = `${team} ${act} (Ход ${state.stepIndex}) | Код: ${currentRoom}`;
 
             renderSlots(state);
 
             document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
-            
-            // Disable banned (checking IDs from ban objects)
             state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
-            // Disable picked
             [...state.bluePicks, ...state.redPicks].forEach(id => {
                 document.getElementById(`char-${id}`)?.classList.add('disabled');
             });
@@ -150,7 +160,6 @@
                     if (isBan) slot.classList.add('slot-ban');
 
                     let charId = null;
-                    // Check if item is object (ban) or string (pick)
                     if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
 
                     if (charId) {
@@ -165,7 +174,6 @@
                 }
             };
 
-            // Filter bans by team for display
             fill('blue-bans', state.bans.filter(b => b.team === 'blue'), 5, STEPS_BLUE_BAN, true);
             fill('red-bans', state.bans.filter(b => b.team === 'red'), 5, STEPS_RED_BAN, true);
 
