@@ -8,21 +8,32 @@
 </head>
 <body>
     <div id="lobby-screen">
-        <h1>Genshin Draft</h1>
-        
-        <input id="nickname-input" placeholder="Your Nickname" maxlength="15">
-        <br><br>
-        
-        <select id="draft-type-select">
-            <option value="gitcg">GITCG CUP </option>
-            <option value="classic">Classic </option>
-        </select>
-        <br><br>
+        <div class="lobby-card">
+            <h1>Genshin Draft</h1>
+            
+            <div class="input-group">
+                <label>NICKNAME</label>
+                <input id="nickname-input" placeholder="Enter Name" maxlength="15">
+            </div>
+            
+            <div class="input-group">
+                <label>DRAFT MODE</label>
+                <select id="draft-type-select">
+                    <option value="gitcg">GITCG CUP (Standard)</option>
+                    <option value="classic">Classic (2 Bans / 3 Picks)</option>
+                </select>
+            </div>
 
-        <button onclick="createGame()">Create Game (Blue)</button>
-        <div style="margin-top:20px; border-top: 1px solid #444; padding-top:20px;">
-            <input id="room-input" placeholder="Room Code">
-            <button onclick="joinGame()">Join Game (Red)</button>
+            <button class="btn-primary" onclick="createGame()">Create Game (Blue)</button>
+            
+            <div class="separator">
+                <span>OR</span>
+            </div>
+
+            <div class="input-group">
+                <input id="room-input" placeholder="Room Code">
+            </div>
+            <button class="btn-secondary" onclick="joinGame()">Join Game (Red)</button>
         </div>
     </div>
 
@@ -59,8 +70,7 @@
         let currentRoom = '';
         let charsData = {};
 
-        // === КОНФИГУРАЦИЯ ШАГОВ ДЛЯ ПОДСВЕТКИ (Display Steps) ===
-        // Standard (GITCG)
+        // Настройки шагов
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
             redBan: [3, 4, 11, 19, 23],
@@ -68,8 +78,6 @@
             redPick: [7, 8, 12, 15, 16, 20, 24, 27, 28]
         };
 
-        // Classic (10 steps total)
-        // Order: B-Ban(1), R-Ban(2), R-Pick(3), B-Ban(4), B-Pick(5), R-Ban(6), R-Pick(7), B-Pick(8), B-Pick(9), R-Pick(10)
         const STEPS_CLASSIC = {
             blueBan: [1, 4],
             redBan: [2, 6],
@@ -82,7 +90,6 @@
             const type = document.getElementById('draft-type-select').value;
             
             if(!nick) return alert("Please enter a nickname!");
-            
             socket.emit('create_game', { nickname: nick, draftType: type }); 
         }
 
@@ -105,7 +112,6 @@
 
         socket.on('update_state', updateUI);
         
-        // ВАЖНО: Обработка конца игры, чтобы показать последний пик
         socket.on('game_over', (state) => {
             updateUI(state);
             setTimeout(() => alert("Draft Completed!"), 500);
@@ -184,7 +190,6 @@
             const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
             const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
             
-            // Если игра окончена (stepIndex > длины драфта), не показываем "BLUE IS..."
             const isGameOver = (state.stepIndex > (state.draftType === 'classic' ? 10 : 28));
             const statusText = isGameOver 
                 ? "DRAFT COMPLETED" 
@@ -205,29 +210,21 @@
             let allFlat = [];
             Object.values(charsData).forEach(arr => allFlat.push(...arr));
             
-            // Определяем настройки в зависимости от типа драфта
             const isClassic = state.draftType === 'classic';
             const steps = isClassic ? STEPS_CLASSIC : STEPS_GITCG;
             
-            // Количество слотов
             const banCount = isClassic ? 2 : 5;
-            const pickCount = isClassic ? 3 : 9; // В classic всего 3 пика
 
             const fill = (containerId, items, max, stepNumbers, isBan) => {
                 const div = document.getElementById(containerId);
                 div.innerHTML = '';
-                
-                // Если max == 0 (например второй ряд пиков в classic), очищаем и выходим
                 if (max === 0) return;
-
                 for (let i = 0; i < max; i++) {
                     const slot = document.createElement('div');
                     slot.className = 'slot-circle';
                     if (isBan) slot.classList.add('slot-ban');
-
                     let charId = null;
                     if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
-
                     if (charId) {
                         const char = allFlat.find(c => c.id === charId);
                         if (char) slot.innerHTML = `<img src="${char.img}">`;
@@ -240,22 +237,17 @@
                 }
             };
 
-            // Рендер банов (динамическое количество)
             fill('blue-bans', state.bans.filter(b => b.team === 'blue'), banCount, steps.blueBan, true);
             fill('red-bans', state.bans.filter(b => b.team === 'red'), banCount, steps.redBan, true);
 
             if (isClassic) {
-                // CLASSIC: Все 3 пика в первом ряду, второй ряд пустой
                 fill('blue-picks-1', state.bluePicks, 3, steps.bluePick, false);
-                fill('blue-picks-2', [], 0, [], false); // Скрыть второй ряд
-
+                fill('blue-picks-2', [], 0, [], false);
                 fill('red-picks-1', state.redPicks, 3, steps.redPick, false);
-                fill('red-picks-2', [], 0, [], false); // Скрыть второй ряд
+                fill('red-picks-2', [], 0, [], false);
             } else {
-                // STANDARD (GITCG): 5 в первом ряду, 4 во втором
                 fill('blue-picks-1', state.bluePicks.slice(0, 5), 5, steps.bluePick.slice(0, 5), false);
                 fill('blue-picks-2', state.bluePicks.slice(5, 9), 4, steps.bluePick.slice(5, 9), false);
-
                 fill('red-picks-1', state.redPicks.slice(0, 5), 5, steps.redPick.slice(0, 5), false);
                 fill('red-picks-2', state.redPicks.slice(5, 9), 4, steps.redPick.slice(5, 9), false);
             }
