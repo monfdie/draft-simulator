@@ -34,7 +34,13 @@
                 <label>ROOM CODE (TO JOIN)</label>
                 <input id="room-input" placeholder="Enter Code">
             </div>
-            <button class="btn-secondary" onclick="joinGame()">Join Game (Red)</button>
+            
+            <div class="input-group" style="flex-direction: row; align-items: center; gap: 10px; margin-bottom: 5px;">
+                <input type="checkbox" id="spectator-check" style="width: auto; margin: 0;">
+                <label for="spectator-check" style="margin: 0; cursor: pointer;">Join as Spectator</label>
+            </div>
+
+            <button class="btn-secondary" onclick="joinGame()">Join Game</button>
         </div>
     </div>
 
@@ -117,8 +123,11 @@
         function joinGame() { 
             const nick = document.getElementById('nickname-input').value;
             const room = document.getElementById('room-input').value;
+            const isSpec = document.getElementById('spectator-check').checked;
+            
             if(!nick || !room) return alert("Please enter a nickname and room code!");
-            socket.emit('join_game', {roomId: room, nickname: nick}); 
+            // Отправляем флаг asSpectator
+            socket.emit('join_game', {roomId: room, nickname: nick, asSpectator: isSpec}); 
         }
 
         socket.on('init_game', (data) => {
@@ -126,6 +135,9 @@
             currentRoom = data.roomId;
             charsData = data.chars;
             document.getElementById('room-display').innerText = `CODE: ${currentRoom}`;
+            if (myRole === 'spectator') {
+                document.getElementById('room-display').innerText += " (SPECTATOR)";
+            }
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
             renderRows();
@@ -136,7 +148,6 @@
         
         socket.on('game_started', () => {
             isGameStarted = true;
-            // Прячем кнопки сразу при событии старта (для плавности)
             document.getElementById('blue-ready-switch').style.display = 'none';
             document.getElementById('red-ready-switch').style.display = 'none';
             document.getElementById('status').innerText = "DRAFT STARTED!";
@@ -174,8 +185,9 @@
         });
 
         function toggleReady(role) {
+            // Зрители не могут жать Ready
+            if (myRole === 'spectator') return;
             if (myRole !== role) return;
-            // Если игра уже началась, ничего не делаем (хотя кнопки уже скрыты)
             if (isGameStarted) return;
             socket.emit('player_ready', currentRoom);
         }
@@ -219,6 +231,8 @@
             
             el.onclick = () => {
                 if (!isGameStarted) return;
+                // Зрители не могут выбирать
+                if (myRole === 'spectator') return;
                 
                 document.querySelectorAll('.char-option').forEach(c => c.classList.remove('selected-pending'));
                 
@@ -231,7 +245,7 @@
         }
 
         function confirmSelection() {
-            if (selectedCharId && currentRoom) {
+            if (selectedCharId && currentRoom && myRole !== 'spectator') {
                 socket.emit('action', { roomId: currentRoom, charId: selectedCharId });
                 selectedCharId = null;
                 document.getElementById('confirm-btn').disabled = true;
@@ -248,7 +262,6 @@
             const switchBlue = document.getElementById('blue-ready-switch');
             const switchRed = document.getElementById('red-ready-switch');
             
-            // ЛОГИКА СКРЫТИЯ КНОПОК
             if (state.gameStarted) {
                 switchBlue.style.display = 'none';
                 switchRed.style.display = 'none';
@@ -256,7 +269,6 @@
                 switchBlue.style.display = 'flex';
                 switchRed.style.display = 'flex';
                 
-                // Обновляем визуальное состояние (ВКЛ/ВЫКЛ)
                 if (state.ready.blue) switchBlue.classList.add('ready-on');
                 else switchBlue.classList.remove('ready-on');
 
@@ -277,6 +289,11 @@
                 statusText = `${team} IS ${act} (Turn ${state.stepIndex})`;
             }
             document.getElementById('status').innerText = statusText;
+
+            // Если я зритель, прячем кнопку подтверждения
+            if (myRole === 'spectator') {
+                 document.getElementById('confirm-btn').style.display = 'none';
+            }
 
             renderSlots(state);
 
