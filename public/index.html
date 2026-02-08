@@ -80,7 +80,39 @@
         });
 
         socket.on('update_state', updateUI);
-        socket.on('timer_tick', (t) => document.getElementById('timer').innerText = t);
+        // Функция форматирования времени (секунды -> ММ:СС)
+function formatTime(s) {
+    if (s < 0) s = 0;
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+}
+
+socket.on('timer_tick', (data) => {
+    // Если приходит просто число (старый код) или объект (новый)
+    const mainTime = typeof data === 'object' ? data.main : data;
+    
+    document.getElementById('timer').innerText = mainTime;
+    
+    // Если пришли резервы, обновляем их
+    if (typeof data === 'object') {
+        const blueRes = document.getElementById('blue-res');
+        const redRes = document.getElementById('red-res');
+        
+        if(blueRes) blueRes.innerText = formatTime(data.blueReserve);
+        if(redRes) redRes.innerText = formatTime(data.redReserve);
+        
+        // Визуально показываем, что тратится резерв (красный таймер)
+        const timerEl = document.getElementById('timer');
+        if (mainTime === 0) {
+             timerEl.style.color = '#555'; // Основной погас
+             timerEl.style.fontSize = '20px'; // Делаем поменьше, чтобы не отвлекал
+        } else {
+             timerEl.style.color = '#ff5555';
+             timerEl.style.fontSize = '28px';
+        }
+    }
+});
 
         function renderRows() {
             const container = document.getElementById('char-pool-container');
@@ -134,20 +166,23 @@
         }
 
         function updateUI(state) {
-            document.getElementById('blue-name-display').innerText = state.blueName;
-            document.getElementById('red-name-display').innerText = state.redName;
-            const team = state.currentTeam === 'blue' ? 'Синие' : 'Красные';
-            const act = state.currentAction === 'ban' ? 'БАНЯТЬ' : 'ПИКАЮТ';
-            document.getElementById('status').innerText = `${team} ${act} (Ход ${state.stepIndex}) | Код: ${currentRoom}`;
+    document.getElementById('blue-name-display').innerText = state.blueName;
+    document.getElementById('red-name-display').innerText = state.redName;
+    
+    // ПЕРЕВОД НА АНГЛИЙСКИЙ ЗДЕСЬ
+    const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
+    const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
+    
+    document.getElementById('status').innerText = `${team} IS ${act} (Turn ${state.stepIndex}) | Room: ${currentRoom}`;
 
-            renderSlots(state);
+    renderSlots(state);
 
-            document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
-            state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
-            [...state.bluePicks, ...state.redPicks].forEach(id => {
-                document.getElementById(`char-${id}`)?.classList.add('disabled');
-            });
-        }
+    document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
+    state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
+    [...state.bluePicks, ...state.redPicks].forEach(id => {
+        document.getElementById(`char-${id}`)?.classList.add('disabled');
+    });
+}
 
         function renderSlots(state) {
             let allFlat = [];
