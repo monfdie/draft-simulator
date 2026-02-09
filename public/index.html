@@ -93,18 +93,23 @@
     </div>
 
     <script>
-        const socket = io();
+        // ИСПРАВЛЕНИЕ: принудительный WebSocket для Render
+        const socket = io({
+            transports: ['websocket']
+        });
+
         let myRole = '';
         let currentRoom = '';
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
         
-        // --- 1. ГЕНЕРАЦИЯ ID ПОЛЬЗОВАТЕЛЯ ---
-        let myUserId = localStorage.getItem('draft_user_id');
+        // --- ИСПРАВЛЕНИЕ: ИСПОЛЬЗУЕМ sessionStorage ВМЕСТО localStorage ---
+        // Это позволяет открывать разные вкладки как разных игроков
+        let myUserId = sessionStorage.getItem('draft_user_id');
         if (!myUserId) {
             myUserId = Math.random().toString(36).substring(2) + Date.now().toString(36);
-            localStorage.setItem('draft_user_id', myUserId);
+            sessionStorage.setItem('draft_user_id', myUserId);
         }
         // -------------------------------------
 
