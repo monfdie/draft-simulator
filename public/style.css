@@ -90,11 +90,12 @@ button {
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { font-family: 'Cinzel', serif; font-size: 24px; color: rgba(255, 255, 255, 0.2); }
 
-/* === NEW: IMMUNITY SLOT HIGHLIGHT (IN MAIN DRAFT) === */
+/* === UPDATED: IMMUNITY SLOT HIGHLIGHT (MAIN DRAFT) === */
 .slot-immunity-pick {
-    border-color: #28a745 !important; /* Зеленый цвет для иммунитетных слотов */
-    background: rgba(40, 167, 69, 0.15) !important;
-    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+    /* Спокойный зеленый, ТОЛЬКО обводка, без фона */
+    border-color: #50b36b !important; 
+    background: transparent !important; 
+    box-shadow: 0 0 8px rgba(80, 179, 107, 0.4); 
 }
 
 .controls-area { display: flex; justify-content: center; height: 40px; position: relative; z-index: 20; margin-top: -20px; margin-bottom: 10px; }
@@ -111,11 +112,13 @@ button {
 .im-icon { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: #000; }
 .im-ban { border: 2px solid #ff4444; position: relative; }
 .im-ban::after { content: ''; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255, 0, 0, 0.3); }
-.im-pick { border: 2px solid #28a745; } /* ЗЕЛЕНАЯ ОБВОДКА ДЛЯ ПИКОВ ИММУНИТЕТА */
-.im-empty { background: rgba(255,255,255,0.05); } /* Пустой слот */
+
+/* === ИЗМЕНЕНО: ИММУНИТЕТНЫЙ ПИК СВЕРХУ - СИНИЙ === */
+.im-pick { border: 2px solid #4facfe; }
+
+.im-empty { background: rgba(255,255,255,0.05); } 
 .im-icon img { width: 100%; height: 100%; object-fit: cover; }
 
-/* === POOL & LADDER === */
 .char-pool { 
     flex-grow: 1; background: rgba(10, 12, 20, 0.95); border-top: 1px solid #333; 
     display: flex; flex-direction: column; justify-content: flex-start; padding: 20px 0; padding-bottom: 40px; 
@@ -150,10 +153,10 @@ button {
 .selected-pending { border-color: #d4af37 !important; box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important; transform: scale(1.1); z-index: 20; }
 .selected-pending img { opacity: 1; }
 
-/* === ЗЕЛЕНОЕ СВЕЧЕНИЕ ДЛЯ ДОСТУПНЫХ ИММУНОВ === */
+/* === ЗЕЛЕНОЕ СВЕЧЕНИЕ ДЛЯ ДОСТУПНЫХ ИММУНОВ В ПУЛЕ === */
 .immunity-highlight { 
-    border-color: #28a745 !important; 
-    box-shadow: 0 0 10px #28a745 !important;
+    border-color: #50b36b !important; /* Спокойный зеленый */
+    box-shadow: 0 0 10px rgba(80, 179, 107, 0.6) !important;
     opacity: 1 !important; 
     filter: none !important; 
 }
