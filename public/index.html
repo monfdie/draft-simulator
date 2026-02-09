@@ -102,7 +102,6 @@
             transports: ['websocket']
         });
 
-        // === ДУБЛИРУЕМ СХЕМЫ, ЧТОБЫ ЗНАТЬ ПОРЯДОК НА КЛИЕНТЕ ===
         const DRAFT_SCHEMAS = {
             'gitcg': [
                 { team: 'blue', type: 'ban' }, { team: 'blue', type: 'ban' },
@@ -188,7 +187,6 @@
             myRole = data.role;
             currentRoom = data.roomId;
             charsData = data.chars;
-            // Узнаем тип драфта из state, если он там есть, или дефолт
             currentDraftType = data.state.draftType || 'gitcg';
             
             document.getElementById('room-display').innerText = `CODE: ${currentRoom}`;
@@ -277,9 +275,8 @@
             const schema = DRAFT_SCHEMAS[currentDraftType] || DRAFT_SCHEMAS['gitcg'];
             schema.forEach((step, index) => {
                 const stepDiv = document.createElement('div');
-                stepDiv.className = `ladder-step step-${step.team}`; // step-blue или step-red
+                stepDiv.className = `ladder-step step-${step.team}`; 
                 stepDiv.id = `step-node-${index}`;
-                // Текст: "1. BAN" или "6. PICK"
                 stepDiv.innerText = `${index + 1}. ${step.type}`; 
                 ladderDiv.appendChild(stepDiv);
             });
@@ -308,7 +305,7 @@
                 rightPart.forEach(char => rightDiv.appendChild(createChar(char)));
 
                 rowDiv.appendChild(leftDiv);
-                rowDiv.appendChild(gapDiv); // Тут будет пусто, сверху наложится лесенка
+                rowDiv.appendChild(gapDiv); 
                 rowDiv.appendChild(rightDiv);
                 container.appendChild(rowDiv);
             });
@@ -350,9 +347,11 @@
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
 
-            // Обновляем Лесенку
-            const currentIdx = state.stepIndex; // Это индекс следующего шага (0..N)
-            // Все предыдущие шаги помечаем как "done"
+            // === ИСПРАВЛЕНИЕ ЗДЕСЬ ===
+            // Сервер присылает номер следующего шага (напр. 1), а массив с 0.
+            // Поэтому отнимаем 1, чтобы получить текущий индекс в массиве.
+            const currentIdx = state.stepIndex - 1; 
+
             const schemaLength = (state.draftType === 'classic' ? 10 : 28);
             for(let i=0; i < schemaLength; i++) {
                 const node = document.getElementById(`step-node-${i}`);
@@ -364,7 +363,6 @@
                     node.classList.add('step-done');
                 } else if (i === currentIdx && state.gameStarted) {
                     node.classList.add('step-active');
-                    // Авто-скролл к активному шагу
                     node.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
@@ -396,7 +394,7 @@
 
             const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
             const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
-            const isGameOver = (state.stepIndex >= schemaLength);
+            const isGameOver = (state.stepIndex > schemaLength); // Тут используем оригинальный (1-based)
             
             let statusText = "";
             if (!state.gameStarted) {
