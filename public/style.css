@@ -342,9 +342,17 @@ button {
     color: #28a745; 
 }
 
+/* Стили строк */
 .ban-row { display: flex; gap: 12px; margin-bottom: 15px; justify-content: center; } 
 .pick-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; }
 .pick-row-small { display: flex; gap: 8px; justify-content: center; }
+
+/* === НОВОЕ: Переворачиваем порядок для Синей команды (чтобы шло от центра) === */
+.blue-side .ban-row, 
+.blue-side .pick-row, 
+.blue-side .pick-row-small {
+    flex-direction: row-reverse;
+}
 
 .slot-circle {
     width: 70px; 
@@ -429,24 +437,23 @@ button {
     padding: 10px 0;
     box-shadow: 0 -10px 20px rgba(0,0,0,0.5);
     overflow: hidden; 
-    position: relative; /* ДЛЯ АБСОЛЮТНОЙ ЛЕСЕНКИ */
+    position: relative;
 }
 
-/* ЛЕСЕНКА (LADDER) В ЦЕНТРЕ */
+/* ЛЕСЕНКА */
 .ladder-container {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     top: 0;
     bottom: 0;
-    width: 14%; /* Ширина центральной колонки */
+    width: 14%; 
     display: flex;
     flex-direction: column;
     gap: 5px;
     padding: 10px 0;
-    overflow-y: auto; /* Скроллится отдельно */
+    overflow-y: auto; 
     z-index: 10;
-    /* Скрываем скроллбар */
     scrollbar-width: none;
 }
 .ladder-container::-webkit-scrollbar { display: none; }
@@ -462,9 +469,8 @@ button {
     opacity: 0.5;
 }
 
-/* Лесенка: Синие слева, Красные справа */
 .step-blue {
-    align-self: flex-start; /* Прижать влево */
+    align-self: flex-start; 
     text-align: left;
     color: #4facfe;
     border-left: 2px solid #4facfe;
@@ -472,7 +478,7 @@ button {
 }
 
 .step-red {
-    align-self: flex-end; /* Прижать вправо */
+    align-self: flex-end; 
     text-align: right;
     color: #ff6b6b;
     border-right: 2px solid #ff6b6b;
@@ -493,7 +499,6 @@ button {
     text-decoration: line-through;
 }
 
-
 /* ROWS */
 .element-row {
     height: 12%; 
@@ -501,18 +506,16 @@ button {
     display: flex;
     align-items: center;
     position: relative;
-    /* Линий нет */
     border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
 }
 
-/* Специальные классы пусты */
 .row-cryo, .row-hydro, .row-pyro, .row-electro, .row-anemo, .row-geo, .row-dendro {
     background: transparent;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .row-half {
-    width: 42%; /* Оставляем место в центре (100% - 14% = 86% / 2 = 43%) */
+    width: 42%;
     display: flex;
     align-items: center;
     gap: 5px; 
@@ -520,13 +523,11 @@ button {
 }
 .left-half { justify-content: flex-end; padding-right: 10px; } 
 .right-half { justify-content: flex-start; padding-left: 10px; } 
-
-/* Пустота в центре для лесенки */
 .row-gap { width: 16%; }
 
 .char-option { 
-    width: 42px; /* УМЕНЬШЕНО */
-    height: 42px; /* УМЕНЬШЕНО */
+    width: 42px; 
+    height: 42px; 
     border-radius: 50%; 
     cursor: pointer; 
     border: 2px solid rgba(255,255,255,0.1);
