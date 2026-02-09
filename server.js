@@ -56,26 +56,32 @@ const DRAFT_SCHEMAS = {
 
 // Create GITCG CUP 2
 const gitcgCup2Schema = JSON.parse(JSON.stringify(DRAFT_SCHEMAS['gitcg']));
-// Mark Immunity Picks (indices are 0-based)
 gitcgCup2Schema[13].immunity = true; // Blue Pick 4
 gitcgCup2Schema[14].immunity = true; // Red Pick 4
 gitcgCup2Schema[25].immunity = true; // Blue Pick 9
 gitcgCup2Schema[27].immunity = true; // Red Pick 9
-
 DRAFT_SCHEMAS['gitcg_cup_2'] = gitcgCup2Schema;
 
 const sessions = {};
 
 io.on('connection', (socket) => {
-    socket.on('create_game', ({ nickname, draftType }) => {
+    
+    // --- CREATE GAME ---
+    socket.on('create_game', ({ nickname, draftType, userId }) => {
         const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
         const type = draftType || 'gitcg';
         const selectedSchema = DRAFT_SCHEMAS[type];
 
         sessions[roomId] = {
             id: roomId, 
+            
+            // Игроки: храним и сокет, и ID пользователя
             bluePlayer: socket.id, 
+            blueUserId: userId, // <-- ВАЖНО: ID для реконнекта
+            
             redPlayer: null,
+            redUserId: null,
+            
             spectators: [], 
             blueName: nickname || 'Player 1', 
             redName: 'Waiting...',
@@ -111,7 +117,8 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('join_game', ({roomId, nickname, asSpectator}) => {
+    // --- JOIN GAME ---
+    socket.on('join_game', ({roomId, nickname, asSpectator, userId}) => {
         const session = sessions[roomId];
         if (!session) {
             socket.emit('error_msg', 'Room not found');
@@ -130,6 +137,7 @@ io.on('connection', (socket) => {
 
         if (!session.redPlayer) {
             session.redPlayer = socket.id;
+            session.redUserId = userId; // <-- ВАЖНО: ID для реконнекта
             session.redName = nickname || 'Player 2';
             socket.join(roomId);
             socket.emit('init_game', { 
@@ -138,6 +146,39 @@ io.on('connection', (socket) => {
             });
             io.to(roomId).emit('update_state', getPublicState(session));
         } 
+    });
+
+    // --- REJOIN GAME (NEW) ---
+    socket.on('rejoin_game', ({ roomId, userId }) => {
+        const session = sessions[roomId];
+        if (!session) {
+            // Если комната удалена или не существует
+            socket.emit('error_msg', 'Session expired');
+            return;
+        }
+
+        let role = '';
+        
+        // Проверяем, был ли этот userId одним из игроков
+        if (session.blueUserId === userId) {
+            session.bluePlayer = socket.id; // Обновляем сокет
+            role = 'blue';
+        } else if (session.redUserId === userId) {
+            session.redPlayer = socket.id; // Обновляем сокет
+            role = 'red';
+        } else {
+            // Если не игрок, кидаем в зрители
+            role = 'spectator';
+            session.spectators.push(socket.id);
+        }
+
+        socket.join(roomId);
+        
+        // Отправляем актуальное состояние
+        socket.emit('init_game', { 
+            roomId, role, 
+            state: getPublicState(session), chars: CHARACTERS_BY_ELEMENT 
+        });
     });
 
     socket.on('player_ready', (roomId) => {
@@ -176,7 +217,7 @@ io.on('connection', (socket) => {
         
         if (!isBlueTurn && !isRedTurn) return;
 
-        // === IMMUNITY PHASE ===
+        // IMMUNITY PHASE
         if (session.immunityPhaseActive) {
             const isImmunityBanned = session.immunityBans.includes(charId);
             const isImmunityPicked = session.immunityPool.includes(charId);
@@ -191,11 +232,10 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // === MAIN DRAFT ===
+        // MAIN DRAFT
         const currentConfig = session.draftOrder[session.stepIndex];
         const isImmunityTurn = !!currentConfig.immunity;
 
-        // Валидация глобальных банов и пиков
         const isGlobalBanned = session.bans.some(b => b.id === charId);
         const isPickedByBlue = session.bluePicks.includes(charId);
         const isPickedByRed = session.redPicks.includes(charId);
@@ -205,21 +245,13 @@ io.on('connection', (socket) => {
         if (session.currentTeam === 'blue' && isPickedByBlue) return;
         if (session.currentTeam === 'red' && isPickedByRed) return;
 
-        // === ИСПРАВЛЕНИЕ: БЛОКИРОВКА ИММУНИТЕТНЫХ ПЕРСОНАЖЕЙ ===
         if (isInImmunityPool) {
-            // Если это БАН - нельзя банить иммунитетного (он уже "защищен" попаданием в пул)
             if (session.currentAction === 'ban') return;
-            
-            // Если это ПИК, но НЕ иммунитетный ход - нельзя брать
             if (session.currentAction === 'pick' && !isImmunityTurn) return;
         }
 
         let isAvailable = !isPickedByBlue && !isPickedByRed;
-
-        // Разрешаем дубликат, если это иммунитетный ход и персонаж в пуле
-        if (isImmunityTurn && isInImmunityPool) {
-            isAvailable = true; 
-        }
+        if (isImmunityTurn && isInImmunityPool) isAvailable = true; 
 
         if (!isAvailable) return;
 
@@ -283,10 +315,7 @@ function startTimer(roomId) {
             if (session.currentTeam === 'blue') session.blueReserve--;
             else session.redReserve--;
             
-            if(session.blueReserve < -5 || session.redReserve < -5) {
-               // Можно добавить автопик при истечении резерва
-               autoPick(roomId); 
-            }
+            if(session.blueReserve < -5 || session.redReserve < -5) autoPick(roomId); 
         }
 
         io.to(roomId).emit('timer_tick', {
@@ -327,12 +356,8 @@ function autoPick(roomId) {
         
         const isInImmunityPool = session.immunityPool.includes(c.id);
 
-        // === ИСПРАВЛЕНИЕ АВТОПИКА ===
-        // Если персонаж в пуле иммунитета:
         if (isInImmunityPool) {
-            // Нельзя банить
             if (session.currentAction === 'ban') return false;
-            // Нельзя пикать на обычном ходе
             if (session.currentAction === 'pick' && !isImmunityTurn) return false;
         }
 
