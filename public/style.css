@@ -169,7 +169,9 @@ button {
     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     z-index: 10;
 }
-#timer { font-size: 28px; color: #ff5555; font-weight: bold; text-shadow: 2px 2px 0 #000; font-family: 'Cinzel', serif; transition: all 0.3s; }
+
+/* Удален стиль для центрального #timer */
+
 .reserve-timer { 
     font-size: 18px; 
     font-weight: bold; 
@@ -179,7 +181,6 @@ button {
 .red-res { color: #ff6b6b; }
 #status { font-size: 18px; color: #ece5d8; text-transform: uppercase; letter-spacing: 1px; }
 
-/* ИЗМЕНЕНИЕ: Стили для блока с кодом */
 #room-container {
     position: absolute;
     left: 20px;
@@ -205,7 +206,6 @@ button {
     border-color: #d4af37;
 }
 
-/* ИЗМЕНЕНИЕ: Всплывающее уведомление */
 #copy-toast {
     visibility: hidden;
     background-color: #28a745;
@@ -223,21 +223,43 @@ button {
     opacity: 1;
 }
 
+/* DRAFT AREA */
 .draft-area { 
     height: 34vh; 
     display: flex; 
-    justify-content: center; 
-    gap: 80px; 
+    justify-content: center; /* Центрирование контента */
+    gap: 20px; /* Уменьшен гап, т.к. есть центральная колонка */
     padding: 10px 50px;
-    align-items: center;
+    align-items: flex-start; /* Выравнивание по верху для колонок */
+    padding-top: 30px; /* Отступ сверху */
     background: radial-gradient(ellipse at center, rgba(70, 78, 114, 0.3) 0%, transparent 70%);
 }
 
 .team-side { 
-    width: 45%; 
+    width: 40%; 
     display: flex; 
     flex-direction: column; 
     align-items: center; 
+}
+
+/* CENTRAL COLUMN STYLES */
+.center-axis {
+    width: 10%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 60px; /* Выравнивание с первой линией банов */
+    gap: 65px; /* Расстояние между надписью BANS и PICKS */
+}
+
+.mid-label {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4em;
+    color: #5a6a8a;
+    letter-spacing: 3px;
+    text-shadow: 0 0 5px rgba(0,0,0,0.8);
+    font-weight: bold;
 }
 
 .player-header {
@@ -245,7 +267,20 @@ button {
     align-items: center;
     gap: 15px;
     margin-bottom: 10px;
+    height: 40px; /* Фиксированная высота для выравнивания */
 }
+
+/* НОВЫЙ СТИЛЬ ТАЙМЕРОВ */
+.turn-timer {
+    font-family: 'Cinzel', serif;
+    font-size: 36px;
+    font-weight: bold;
+    min-width: 50px;
+    text-align: center;
+    text-shadow: 2px 2px 0 #000;
+}
+#blue-timer { color: #4facfe; }
+#red-timer { color: #ff6b6b; }
 
 .player-header h2 { 
     font-family: 'Cinzel', serif;
@@ -308,9 +343,9 @@ button {
     color: #28a745; 
 }
 
-.ban-row { display: flex; gap: 12px; margin-bottom: 15px; } 
-.pick-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.pick-row-small { display: flex; gap: 8px; }
+.ban-row { display: flex; gap: 12px; margin-bottom: 15px; justify-content: center; } 
+.pick-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; }
+.pick-row-small { display: flex; gap: 8px; justify-content: center; }
 
 .slot-circle {
     width: 70px; 
