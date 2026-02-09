@@ -93,7 +93,8 @@
             <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>Select</button>
         </div>
 
-        <div class="char-pool" id="char-pool-container"></div>
+        <div class="char-pool" id="char-pool-container">
+            </div>
     </div>
 
     <script>
@@ -101,8 +102,47 @@
             transports: ['websocket']
         });
 
+        // === ДУБЛИРУЕМ СХЕМЫ, ЧТОБЫ ЗНАТЬ ПОРЯДОК НА КЛИЕНТЕ ===
+        const DRAFT_SCHEMAS = {
+            'gitcg': [
+                { team: 'blue', type: 'ban' }, { team: 'blue', type: 'ban' },
+                { team: 'red', type: 'ban' },  { team: 'red', type: 'ban' },
+                { team: 'blue', type: 'ban' }, 
+                { team: 'blue', type: 'pick' },
+                { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' },
+                { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
+                { team: 'red', type: 'ban' }, 
+                { team: 'red', type: 'pick' },
+                { team: 'blue', type: 'ban' }, 
+                { team: 'blue', type: 'pick' },
+                { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' },
+                { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
+                { team: 'red', type: 'ban' }, 
+                { team: 'red', type: 'pick' },
+                { team: 'blue', type: 'ban' }, 
+                { team: 'blue', type: 'pick' },
+                { team: 'red', type: 'ban' }, 
+                { team: 'red', type: 'pick' },
+                { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
+                { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' }
+            ],
+            'classic': [
+                { team: 'blue', type: 'ban' },      
+                { team: 'red', type: 'ban' },       
+                { team: 'red', type: 'pick' },      
+                { team: 'blue', type: 'ban' },      
+                { team: 'blue', type: 'pick' },     
+                { team: 'red', type: 'ban' },       
+                { team: 'red', type: 'pick' },      
+                { team: 'blue', type: 'pick' },     
+                { team: 'blue', type: 'pick' },     
+                { team: 'red', type: 'pick' }       
+            ]
+        };
+
         let myRole = '';
         let currentRoom = '';
+        let currentDraftType = 'gitcg';
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
@@ -148,13 +188,17 @@
             myRole = data.role;
             currentRoom = data.roomId;
             charsData = data.chars;
+            // Узнаем тип драфта из state, если он там есть, или дефолт
+            currentDraftType = data.state.draftType || 'gitcg';
+            
             document.getElementById('room-display').innerText = `CODE: ${currentRoom}`;
             if (myRole === 'spectator') {
                 document.getElementById('room-display').innerText += " (SPECTATOR)";
             }
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
-            renderRows();
+            
+            renderRows(); 
             updateUI(data.state);
         });
 
@@ -185,13 +229,11 @@
             if (activeTeam === 'blue') {
                 document.getElementById('blue-timer').innerText = mainTime;
                 document.getElementById('red-timer').innerText = "60";
-                
                 const tEl = document.getElementById('blue-timer');
                 tEl.style.color = mainTime < 10 ? '#ff5555' : '#4facfe';
             } else {
                 document.getElementById('red-timer').innerText = mainTime;
                 document.getElementById('blue-timer').innerText = "60";
-
                 const tEl = document.getElementById('red-timer');
                 tEl.style.color = mainTime < 10 ? '#ff5555' : '#ff6b6b';
             }
@@ -222,22 +264,52 @@
             });
         }
 
-        // --- ИЗМЕНЕННАЯ ЛОГИКА ОТРИСОВКИ СТРОК ---
         function renderRows() {
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
-            const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
+
+            // 1. Создаем ЛЕСЕНКУ (Ladder)
+            const ladderDiv = document.createElement('div');
+            ladderDiv.className = 'ladder-container';
+            ladderDiv.id = 'ladder-container';
             
+            // Генерируем шаги
+            const schema = DRAFT_SCHEMAS[currentDraftType] || DRAFT_SCHEMAS['gitcg'];
+            schema.forEach((step, index) => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = `ladder-step step-${step.team}`; // step-blue или step-red
+                stepDiv.id = `step-node-${index}`;
+                // Текст: "1. BAN" или "6. PICK"
+                stepDiv.innerText = `${index + 1}. ${step.type}`; 
+                ladderDiv.appendChild(stepDiv);
+            });
+
+            container.appendChild(ladderDiv);
+
+            // 2. Создаем ряды персонажей
+            const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
             elements.forEach(elem => {
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `element-row row-${elem}`;
                 const chars = charsData[elem];
-                
-                // Просто добавляем всех персонажей подряд в одну линию
-                chars.forEach(char => {
-                    rowDiv.appendChild(createChar(char));
-                });
+                const mid = Math.ceil(chars.length / 2);
+                const leftPart = chars.slice(0, mid);
+                const rightPart = chars.slice(mid);
 
+                const leftDiv = document.createElement('div');
+                leftDiv.className = 'row-half left-half';
+                leftPart.forEach(char => leftDiv.appendChild(createChar(char)));
+
+                const gapDiv = document.createElement('div');
+                gapDiv.className = 'row-gap';
+
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'row-half right-half';
+                rightPart.forEach(char => rightDiv.appendChild(createChar(char)));
+
+                rowDiv.appendChild(leftDiv);
+                rowDiv.appendChild(gapDiv); // Тут будет пусто, сверху наложится лесенка
+                rowDiv.appendChild(rightDiv);
                 container.appendChild(rowDiv);
             });
         }
@@ -278,6 +350,25 @@
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
 
+            // Обновляем Лесенку
+            const currentIdx = state.stepIndex; // Это индекс следующего шага (0..N)
+            // Все предыдущие шаги помечаем как "done"
+            const schemaLength = (state.draftType === 'classic' ? 10 : 28);
+            for(let i=0; i < schemaLength; i++) {
+                const node = document.getElementById(`step-node-${i}`);
+                if (!node) continue;
+                node.classList.remove('step-active');
+                node.classList.remove('step-done');
+                
+                if (i < currentIdx) {
+                    node.classList.add('step-done');
+                } else if (i === currentIdx && state.gameStarted) {
+                    node.classList.add('step-active');
+                    // Авто-скролл к активному шагу
+                    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
             const switchBlue = document.getElementById('blue-ready-switch');
             const switchRed = document.getElementById('red-ready-switch');
             
@@ -305,7 +396,7 @@
 
             const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
             const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
-            const isGameOver = (state.stepIndex > (state.draftType === 'classic' ? 10 : 28));
+            const isGameOver = (state.stepIndex >= schemaLength);
             
             let statusText = "";
             if (!state.gameStarted) {
