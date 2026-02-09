@@ -14,12 +14,13 @@
         { "id": "freminet", "name": "Freminet", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/dfbef47c415550c66a42180c2dc70f0a.png" },
         { "id": "rosaria", "name": "Rosaria", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/318e03feba83e30e6f76d1d27fbdf5f8.png" },
         { "id": "citlali", "name": "Citlali", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6851f3bc/c14672813537ec7f5a9b7455e0ab08c4.png" },
+        { "id": "escofier", "name": "Escofier", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/692f7dc7/0074d47dbeefa4b467a56f02c7e9a14b.png" },
+        { "id": "skirk", "name": "Skirk", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6966dce3/54667f8409be4f7b9bcb35a958ffdfb8.png" },
         { "id": "signora", "name": "Signora", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/b1d1ba210006f42643b1253075833460.png" },
         { "id": "cryocicin", "name": "Cryo Cicin", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/ef93623039310c4cf3b7d1f4a4d9341b.png" },
         { "id": "cryohypo", "name": "Cryo Hypostasis", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/4128f76400da6790a5228196a260528f.png" },
         { "id": "operative", "name": "Operative", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/0175ca1c46848cdfd9dda7ba1dd73e59.png" },
-        { "id": "skirk", "name": "Skirk", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/6966dce3/54667f8409be4f7b9bcb35a958ffdfb8.png" },
-        { "id": "escofier", "name": "Escofier", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/692f7dc7/0074d47dbeefa4b467a56f02c7e9a14b.png" }
+        
     ],
     "hydro": [
         { "id": "barbara", "name": "Barbara", "img": "https://act-webstatic.hoyoverse.com/hk4e/e20200928calculate/item_icon/67c7f716/302b2c185f63cad48736c627a1551afe.png" },
