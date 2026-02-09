@@ -258,9 +258,7 @@
                 const row = document.getElementById('immunity-icons-row');
                 row.innerHTML = '';
                 
-                // Show Immunity Bans (Red border)
                 (state.immunityBans || []).forEach(id => addImmunityIcon(id, 'ban', row));
-                // Show Immunity Picks (Blue border)
                 (state.immunityPool || []).forEach(id => addImmunityIcon(id, 'pick', row));
             } else {
                 topDisp.style.display = 'none';
@@ -292,30 +290,41 @@
             // 1. Global Bans -> Always disabled
             state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
             
-            // 2. Already Picked -> Disabled (unless immunity exception below)
+            // 2. Already Picked
             [...state.bluePicks, ...state.redPicks].forEach(id => document.getElementById(`char-${id}`)?.classList.add('disabled'));
 
             if(state.immunityPhaseActive) {
-                // In Immunity Phase: cannot pick already banned-for-immunity or already picked-for-immunity
+                // Immunity Phase: cannot pick already banned-for-immunity or already picked-for-immunity
                 [...state.immunityBans, ...state.immunityPool].forEach(id => 
                     document.getElementById(`char-${id}`)?.classList.add('disabled'));
             } else {
                 // Main Draft
                 const step = DRAFT_SCHEMAS[currentDraftType][idx];
-                if(step && step.immunity) {
-                    // Immunity Turn: Enable chars in immunity pool if not self-owned
-                    state.immunityPool.forEach(id => {
-                        const el = document.getElementById(`char-${id}`);
-                        if(el) {
+                const isImmunityTurn = step && step.immunity;
+
+                // === ИСПРАВЛЕНИЕ ВИЗУАЛА: БЛОКИРОВКА ПУЛА ИММУНИТЕТА ===
+                state.immunityPool.forEach(id => {
+                    const el = document.getElementById(`char-${id}`);
+                    if(!el) return;
+
+                    if(state.currentAction === 'ban') {
+                        // Нельзя банить иммунитетных
+                        el.classList.add('disabled');
+                    } else if (state.currentAction === 'pick') {
+                        // Пик фаза
+                        if(isImmunityTurn) {
+                            // Если ход иммунитетный - можно брать (если еще не взял сам)
                             const myPicks = activeTeam === 'blue' ? state.bluePicks : state.redPicks;
-                            // If I don't have it yet, enable it (even if opponent has it)
                             if(!myPicks.includes(id)) {
                                 el.classList.remove('disabled');
                                 el.classList.add('immunity-highlight');
                             }
+                        } else {
+                            // Если обычный пик - иммунитетные недоступны
+                            el.classList.add('disabled');
                         }
-                    });
-                }
+                    }
+                });
             }
 
             if(state.gameStarted && myRole !== 'spectator' && myRole !== state.currentTeam) {
