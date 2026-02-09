@@ -222,12 +222,12 @@ button {
     opacity: 1;
 }
 
-/* DRAFT AREA - ВОЗВРАЩЕНО К ИСХОДНОМУ РАЗМЕРУ */
+/* DRAFT AREA */
 .draft-area { 
-    height: 34vh; /* Вернули 34vh */
+    height: 34vh; 
     display: flex; 
     justify-content: center; 
-    gap: 80px; /* Вернули большой gap */
+    gap: 80px; 
     padding: 10px 50px;
     align-items: center; 
     background: radial-gradient(ellipse at center, rgba(70, 78, 114, 0.3) 0%, transparent 70%);
@@ -235,7 +235,7 @@ button {
 }
 
 .team-side { 
-    width: 45%; /* Вернули ширину */
+    width: 45%; 
     display: flex; 
     flex-direction: column; 
     align-items: center; 
@@ -248,7 +248,7 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 60px; /* Отступ под старый размер */
+    padding-top: 60px; 
     gap: 65px; 
 }
 
@@ -346,7 +346,6 @@ button {
 .pick-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; }
 .pick-row-small { display: flex; gap: 8px; justify-content: center; }
 
-/* ОБНОВЛЕНО: Вернули 70px */
 .slot-circle {
     width: 70px; 
     height: 70px; 
@@ -379,7 +378,7 @@ button {
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { 
     font-family: 'Cinzel', serif; 
-    font-size: 26px; /* Вернули крупный шрифт */
+    font-size: 26px; 
     color: rgba(255, 255, 255, 0.4); 
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
@@ -421,52 +420,120 @@ button {
 
 /* CHAR POOL */
 .char-pool { 
-    flex-grow: 1; /* Растягиваем на остаток */
+    flex-grow: 1; 
     background: rgba(18, 21, 31, 0.95); 
     border-top: 3px solid #020c1b; 
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly; /* Равномерно распределяем 7 рядов */
+    justify-content: space-evenly; 
     padding: 10px 0;
     box-shadow: 0 -10px 20px rgba(0,0,0,0.5);
-    overflow: hidden; /* Скрываем вертикальный скролл */
+    overflow: hidden; 
+    position: relative; /* ДЛЯ АБСОЛЮТНОЙ ЛЕСЕНКИ */
 }
 
-/* ЭЛЕМЕНТЫ В ОДНУ ЛИНИЮ */
+/* ЛЕСЕНКА (LADDER) В ЦЕНТРЕ */
+.ladder-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+    bottom: 0;
+    width: 14%; /* Ширина центральной колонки */
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px 0;
+    overflow-y: auto; /* Скроллится отдельно */
+    z-index: 10;
+    /* Скрываем скроллбар */
+    scrollbar-width: none;
+}
+.ladder-container::-webkit-scrollbar { display: none; }
+
+.ladder-step {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    opacity: 0.5;
+}
+
+/* Лесенка: Синие слева, Красные справа */
+.step-blue {
+    align-self: flex-start; /* Прижать влево */
+    text-align: left;
+    color: #4facfe;
+    border-left: 2px solid #4facfe;
+    background: linear-gradient(90deg, rgba(79, 172, 254, 0.1), transparent);
+}
+
+.step-red {
+    align-self: flex-end; /* Прижать вправо */
+    text-align: right;
+    color: #ff6b6b;
+    border-right: 2px solid #ff6b6b;
+    background: linear-gradient(-90deg, rgba(255, 107, 107, 0.1), transparent);
+}
+
+.step-active {
+    opacity: 1;
+    background: #fff;
+    color: #000 !important;
+    border-color: #fff !important;
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+.step-done {
+    opacity: 0.3;
+    text-decoration: line-through;
+}
+
+
+/* ROWS */
 .element-row {
     height: 12%; 
     width: 100%;
     display: flex;
     align-items: center;
-    padding: 0 20px;
-    gap: 15px; /* Отступ между кружками */
-    overflow-x: auto; /* Горизонтальный скролл */
-    overflow-y: hidden;
-    white-space: nowrap; /* Запрет переноса */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    scrollbar-width: none; /* Скрытие скроллбара в Firefox */
-}
-/* Скрытие скроллбара в Chrome/Safari */
-.element-row::-webkit-scrollbar {
-    display: none;
+    position: relative;
+    /* Линий нет */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
 }
 
-/* Специальные классы теперь просто прозрачные */
+/* Специальные классы пусты */
 .row-cryo, .row-hydro, .row-pyro, .row-electro, .row-anemo, .row-geo, .row-dendro {
     background: transparent;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+.row-half {
+    width: 42%; /* Оставляем место в центре (100% - 14% = 86% / 2 = 43%) */
+    display: flex;
+    align-items: center;
+    gap: 5px; 
+    flex-wrap: wrap; 
+}
+.left-half { justify-content: flex-end; padding-right: 10px; } 
+.right-half { justify-content: flex-start; padding-left: 10px; } 
+
+/* Пустота в центре для лесенки */
+.row-gap { width: 16%; }
+
 .char-option { 
-    width: 60px;
-    height: 60px;
+    width: 42px; /* УМЕНЬШЕНО */
+    height: 42px; /* УМЕНЬШЕНО */
     border-radius: 50%; 
     cursor: pointer; 
     border: 2px solid rgba(255,255,255,0.1);
     transition: all 0.2s;
     background: #222;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    flex-shrink: 0; /* Не сжимать кружки */
+    flex-shrink: 0;
 }
 
 .char-option img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
