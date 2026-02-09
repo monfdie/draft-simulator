@@ -155,12 +155,18 @@ io.on('connection', (socket) => {
         if (socket.id === session.bluePlayer) session.ready.blue = true;
         if (socket.id === session.redPlayer) session.ready.red = true;
 
+        // Уведомляем о готовности (галочки)
         io.to(roomId).emit('update_state', getPublicState(session));
 
         if (session.ready.blue && session.ready.red && !session.gameStarted) {
             session.gameStarted = true;
             startTimer(roomId);
             io.to(roomId).emit('game_started');
+            
+            // --- ВАЖНОЕ ИСПРАВЛЕНИЕ ---
+            // Отправляем состояние снова, чтобы клиенты увидели gameStarted: true
+            // и обновили статус на "BLUE BANNING"
+            io.to(roomId).emit('update_state', getPublicState(session));
         }
     });
 
