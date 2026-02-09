@@ -3,7 +3,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Segoe+UI&display=swap');
 
 body { 
-    /* Темный фон как на референсе */
     background: #0b0d17;
     background-image: radial-gradient(circle at 50% 30%, #1a1f35 0%, #080a12 80%);
     color: #ece5d8;
@@ -210,14 +209,13 @@ button {
     align-items: center; 
 }
 
-/* ЦЕНТРАЛЬНАЯ КОЛОНКА (BANS / PICKS Labels) */
 .center-axis {
     width: 10%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 15px; /* ИСПРАВЛЕНО: Поднял выше (было 50px) */
+    padding-top: 15px; 
     gap: 80px; 
     opacity: 0.6;
 }
@@ -239,10 +237,9 @@ button {
     height: 40px; 
 }
 
-/* ТАЙМЕРЫ */
 .turn-timer {
     font-family: 'Cinzel', serif;
-    font-size: 28px; /* ИСПРАВЛЕНО: Уменьшил в 1.5 раза (было 42px) */
+    font-size: 28px; 
     font-weight: bold;
     min-width: 60px;
     text-align: center;
@@ -258,7 +255,6 @@ button {
     letter-spacing: 1px;
 }
 
-/* SWITCH */
 .ready-switch {
     width: 30px; height: 15px; background: #222; border-radius: 15px; 
     position: relative; cursor: pointer; border: 1px solid #444; display: flex; align-items: center;
@@ -278,7 +274,6 @@ button {
 }
 .pick-row-small { gap: 15px; }
 
-/* СИНЯЯ СТОРОНА: Все от центра */
 .blue-side .ban-row, 
 .blue-side .pick-row, 
 .blue-side .pick-row-small {
@@ -286,7 +281,6 @@ button {
     justify-content: flex-start;
 }
 
-/* КРАСНАЯ СТОРОНА: Все от центра */
 .red-side .ban-row, 
 .red-side .pick-row, 
 .red-side .pick-row-small {
@@ -294,7 +288,6 @@ button {
     justify-content: flex-start;
 }
 
-/* === СЛОТЫ (КРУГИ) - РЕДИЗАЙН === */
 .slot-circle {
     width: 65px; 
     height: 65px; 
@@ -310,36 +303,15 @@ button {
 }
 
 .blue-side .pick-row .slot-circle,
-.blue-side .pick-row-small .slot-circle {
-    border-color: #1e3c72;
-}
-
+.blue-side .pick-row-small .slot-circle { border-color: #1e3c72; }
 .red-side .pick-row .slot-circle,
-.red-side .pick-row-small .slot-circle {
-    border-color: #631e1e;
-}
-
-.slot-ban { 
-    border-color: #8b0000 !important; 
-    background: rgba(40, 5, 5, 0.4) !important;
-}
-
-.active-slot { 
-    border-color: #fff !important; 
-    background: rgba(255, 255, 255, 0.1) !important;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-    transform: scale(1.1);
-}
-
+.red-side .pick-row-small .slot-circle { border-color: #631e1e; }
+.slot-ban { border-color: #8b0000 !important; background: rgba(40, 5, 5, 0.4) !important; }
+.active-slot { border-color: #fff !important; background: rgba(255, 255, 255, 0.1) !important; box-shadow: 0 0 15px rgba(255, 255, 255, 0.2); transform: scale(1.1); }
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
+.step-number { font-family: 'Cinzel', serif; font-size: 24px; color: rgba(255, 255, 255, 0.2); }
 
-.step-number { 
-    font-family: 'Cinzel', serif; 
-    font-size: 24px; 
-    color: rgba(255, 255, 255, 0.2); 
-}
-
-/* --- CONTROLS AREA (КНОПКА SELECT) --- */
+/* --- CONTROLS AREA --- */
 .controls-area {
     display: flex;
     justify-content: center;
@@ -351,9 +323,9 @@ button {
 }
 
 .confirm-btn {
-    display: flex; /* ИСПРАВЛЕНО: добавлено для центрирования */
-    justify-content: center; /* ИСПРАВЛЕНО */
-    align-items: center; /* ИСПРАВЛЕНО */
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background: #222;
     border: 1px solid #555;
     color: #999;
@@ -364,7 +336,6 @@ button {
     transition: all 0.2s;
     letter-spacing: 2px;
 }
-/* Активная кнопка select */
 .confirm-btn:not(:disabled) {
     background: #d4af37;
     border-color: #fff;
@@ -372,6 +343,46 @@ button {
     box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
     cursor: pointer;
     transform: scale(1.1);
+}
+
+/* --- IMMUNITY POOL DISPLAY --- */
+.immunity-pool-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(212, 175, 55, 0.05); /* Золотой тинт */
+    border-top: 1px solid rgba(212, 175, 55, 0.3);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 10px;
+    margin-bottom: 10px;
+    position: absolute;
+    top: 45vh; /* Примерно посередине */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 25;
+    border-radius: 8px;
+    min-width: 200px;
+}
+
+.pool-label {
+    font-family: 'Cinzel', serif;
+    color: #d4af37;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+}
+
+.pool-slots {
+    display: flex;
+    gap: 8px;
+}
+
+.pool-slots img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #d4af37;
 }
 
 /* --- CHAR POOL (BOTTOM) --- */
@@ -383,11 +394,14 @@ button {
     flex-direction: column;
     justify-content: flex-start; 
     padding: 20px 0;
+    padding-bottom: 40px; 
     box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
     position: relative;
+    overflow-y: auto; 
+    scrollbar-width: none; 
 }
+.char-pool::-webkit-scrollbar { display: none; }
 
-/* ЛЕСЕНКА ПО ЦЕНТРУ */
 .ladder-container {
     position: absolute;
     left: 50%;
@@ -400,6 +414,7 @@ button {
     align-items: center;
     gap: 4px;
     padding-top: 20px;
+    padding-bottom: 40px; 
     overflow-y: auto; 
     z-index: 10;
     scrollbar-width: none;
@@ -422,17 +437,11 @@ button {
 
 .step-blue { text-align: left; color: #4facfe; border-left: 2px solid #4facfe; }
 .step-red { text-align: right; color: #ff6b6b; border-right: 2px solid #ff6b6b; }
+.step-immunity { border-color: #d4af37; color: #d4af37; } /* Золотой для иммунитета */
 
-.step-active {
-    opacity: 1;
-    background: #222;
-    color: #fff !important;
-    border-color: #fff !important;
-    transform: scale(1.1);
-}
+.step-active { opacity: 1; background: #222; color: #fff !important; border-color: #fff !important; transform: scale(1.1); }
 .step-done { text-decoration: line-through; opacity: 0.15; }
 
-/* РЯДЫ ПЕРСОНАЖЕЙ */
 .element-row {
     min-height: 55px; 
     width: 100%;
@@ -443,9 +452,7 @@ button {
     margin-bottom: 2px;
 }
 
-.row-cryo, .row-hydro, .row-pyro, .row-electro, .row-anemo, .row-geo, .row-dendro {
-    background: transparent;
-}
+.row-cryo, .row-hydro, .row-pyro, .row-electro, .row-anemo, .row-geo, .row-dendro { background: transparent; }
 
 .row-half {
     width: calc(50% - 60px); 
@@ -468,22 +475,13 @@ button {
     background: #111;
     flex-shrink: 0;
 }
-
 .char-option img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; opacity: 0.8; }
 .char-option:hover { transform: scale(1.1); border-color: #fff; z-index: 10; }
 .char-option:hover img { opacity: 1; }
 
-.selected-pending {
-    border-color: #d4af37 !important; 
-    box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important;
-    transform: scale(1.1);
-    z-index: 20;
-}
+.selected-pending { border-color: #d4af37 !important; box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important; transform: scale(1.1); z-index: 20; }
 .selected-pending img { opacity: 1; }
 
-.disabled { 
-    opacity: 0.15; 
-    filter: grayscale(100%); 
-    pointer-events: none; 
-    border-color: transparent;
-}
+.immunity-highlight { border-color: #d4af37 !important; box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+
+.disabled { opacity: 0.15; filter: grayscale(100%); pointer-events: none; border-color: transparent; }
