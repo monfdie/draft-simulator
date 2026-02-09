@@ -222,6 +222,7 @@
             });
         }
 
+        // --- ИЗМЕНЕННАЯ ЛОГИКА ОТРИСОВКИ СТРОК ---
         function renderRows() {
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
@@ -231,24 +232,12 @@
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `element-row row-${elem}`;
                 const chars = charsData[elem];
-                const mid = Math.ceil(chars.length / 2);
-                const leftPart = chars.slice(0, mid);
-                const rightPart = chars.slice(mid);
+                
+                // Просто добавляем всех персонажей подряд в одну линию
+                chars.forEach(char => {
+                    rowDiv.appendChild(createChar(char));
+                });
 
-                const leftDiv = document.createElement('div');
-                leftDiv.className = 'row-half left-half';
-                leftPart.forEach(char => leftDiv.appendChild(createChar(char)));
-
-                const gapDiv = document.createElement('div');
-                gapDiv.className = 'row-gap';
-
-                const rightDiv = document.createElement('div');
-                rightDiv.className = 'row-half right-half';
-                rightPart.forEach(char => rightDiv.appendChild(createChar(char)));
-
-                rowDiv.appendChild(leftDiv);
-                rowDiv.appendChild(gapDiv);
-                rowDiv.appendChild(rightDiv);
                 container.appendChild(rowDiv);
             });
         }
@@ -334,16 +323,13 @@
 
             renderSlots(state);
 
-            // 1. Сначала сбрасываем статус "disabled" у всех
             document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
 
-            // 2. Дизейблим уже выбранных и забаненных
             state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
             [...state.bluePicks, ...state.redPicks].forEach(id => {
                 document.getElementById(`char-${id}`)?.classList.add('disabled');
             });
 
-            // 3. Если сейчас НЕ мой ход (и я не зритель), дизейблим всё поле
             if (state.gameStarted && myRole !== 'spectator' && myRole !== state.currentTeam) {
                  document.querySelectorAll('.char-option').forEach(el => el.classList.add('disabled'));
             }
