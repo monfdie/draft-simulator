@@ -168,9 +168,8 @@ button {
     border-bottom: 3px solid #020c1b; 
     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     z-index: 10;
+    flex-shrink: 0; /* Не сжимать хедер */
 }
-
-/* Удален стиль для центрального #timer */
 
 .reserve-timer { 
     font-size: 18px; 
@@ -223,16 +222,16 @@ button {
     opacity: 1;
 }
 
-/* DRAFT AREA */
+/* DRAFT AREA - ОБНОВЛЕНО: Меньше высоты и отступов */
 .draft-area { 
-    height: 34vh; 
+    height: 22vh; /* Было 34vh, стало компактнее */
     display: flex; 
-    justify-content: center; /* Центрирование контента */
-    gap: 20px; /* Уменьшен гап, т.к. есть центральная колонка */
-    padding: 10px 50px;
-    align-items: flex-start; /* Выравнивание по верху для колонок */
-    padding-top: 30px; /* Отступ сверху */
+    justify-content: center; 
+    gap: 20px; 
+    padding: 0 50px; /* Убраны отступы сверху/снизу */
+    align-items: center; /* Центрирование по вертикали */
     background: radial-gradient(ellipse at center, rgba(70, 78, 114, 0.3) 0%, transparent 70%);
+    flex-shrink: 0; /* Фиксированная высота */
 }
 
 .team-side { 
@@ -249,13 +248,13 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 60px; /* Выравнивание с первой линией банов */
-    gap: 65px; /* Расстояние между надписью BANS и PICKS */
+    padding-top: 10px; 
+    gap: 50px; 
 }
 
 .mid-label {
     font-family: 'Cinzel', serif;
-    font-size: 1.4em;
+    font-size: 1.2em;
     color: #5a6a8a;
     letter-spacing: 3px;
     text-shadow: 0 0 5px rgba(0,0,0,0.8);
@@ -266,14 +265,14 @@ button {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 10px;
-    height: 40px; /* Фиксированная высота для выравнивания */
+    margin-bottom: 5px; /* Уменьшен отступ */
+    height: 40px; 
 }
 
-/* НОВЫЙ СТИЛЬ ТАЙМЕРОВ */
+/* ТАЙМЕРЫ */
 .turn-timer {
     font-family: 'Cinzel', serif;
-    font-size: 36px;
+    font-size: 32px; /* Чуть меньше */
     font-weight: bold;
     min-width: 50px;
     text-align: center;
@@ -284,7 +283,7 @@ button {
 
 .player-header h2 { 
     font-family: 'Cinzel', serif;
-    font-size: 1.06em;          
+    font-size: 1em;          
     margin: 0; 
     text-transform: uppercase; 
     text-shadow: 0 2px 5px rgba(0,0,0,0.8);
@@ -343,13 +342,14 @@ button {
     color: #28a745; 
 }
 
-.ban-row { display: flex; gap: 12px; margin-bottom: 15px; justify-content: center; } 
-.pick-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; }
-.pick-row-small { display: flex; gap: 8px; justify-content: center; }
+.ban-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; } 
+.pick-row { display: flex; gap: 5px; margin-bottom: 5px; justify-content: center; }
+.pick-row-small { display: flex; gap: 5px; justify-content: center; }
 
+/* ОБНОВЛЕНО: Уменьшенный размер слотов */
 .slot-circle {
-    width: 70px; 
-    height: 70px; 
+    width: 55px; /* Было 70px */
+    height: 55px; /* Было 70px */
     border-radius: 50%;
     background: radial-gradient(circle, rgba(45, 52, 80, 0.8) 0%, rgba(20, 24, 40, 0.9) 100%);
     border: 2px solid #464e72;
@@ -379,7 +379,7 @@ button {
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { 
     font-family: 'Cinzel', serif; 
-    font-size: 26px; 
+    font-size: 20px; /* Уменьшен шрифт номера шага */
     color: rgba(255, 255, 255, 0.4); 
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
@@ -391,6 +391,7 @@ button {
     padding-bottom: 10px;
     position: relative;
     z-index: 20;
+    flex-shrink: 0;
 }
 
 .confirm-btn {
@@ -418,39 +419,43 @@ button {
     box-shadow: none;
 }
 
-/* CHAR POOL */
+/* CHAR POOL - ОБНОВЛЕНО: Занимает все свободное место */
 .char-pool { 
-    height: 60vh; 
+    flex-grow: 1; /* Растягивается на все доступное место */
     background: rgba(18, 21, 31, 0.95); 
     border-top: 3px solid #020c1b; 
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly; 
+    justify-content: flex-start; /* Элементы сверху вниз */
     padding: 10px 0;
     box-shadow: 0 -10px 20px rgba(0,0,0,0.5);
+    overflow-y: auto; /* Прокрутка если нужно */
 }
 
+/* ОБНОВЛЕНО: Убраны цветные линии */
 .element-row {
-    height: 12%; 
+    min-height: 80px; /* Минимальная высота строки */
+    padding: 5px 0;
     width: 100%;
     display: flex;
     align-items: center;
     position: relative;
+    /* Убраны цветные background и border-bottom */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Еле заметный разделитель */
 }
 
-.row-cryo { background: linear-gradient(90deg, transparent, rgba(160, 240, 255, 0.15), transparent); border-bottom: 1px solid rgba(160, 240, 255, 0.1); }
-.row-hydro { background: linear-gradient(90deg, transparent, rgba(0, 100, 255, 0.15), transparent); border-bottom: 1px solid rgba(0, 100, 255, 0.1); }
-.row-pyro { background: linear-gradient(90deg, transparent, rgba(255, 100, 0, 0.15), transparent); border-bottom: 1px solid rgba(255, 100, 0, 0.1); }
-.row-electro { background: linear-gradient(90deg, transparent, rgba(200, 0, 255, 0.15), transparent); border-bottom: 1px solid rgba(200, 0, 255, 0.1); }
-.row-anemo { background: linear-gradient(90deg, transparent, rgba(0, 255, 100, 0.15), transparent); border-bottom: 1px solid rgba(0, 255, 100, 0.1); }
-.row-geo { background: linear-gradient(90deg, transparent, rgba(255, 200, 0, 0.15), transparent); border-bottom: 1px solid rgba(255, 200, 0, 0.1); }
-.row-dendro { background: linear-gradient(90deg, transparent, rgba(100, 255, 0, 0.15), transparent); border-bottom: 1px solid rgba(100, 255, 0, 0.1); }
+/* Специальные классы теперь пустые или сброшены */
+.row-cryo, .row-hydro, .row-pyro, .row-electro, .row-anemo, .row-geo, .row-dendro {
+    background: transparent;
+    border: none;
+}
 
 .row-half {
     width: 45%; 
     display: flex;
     align-items: center;
     gap: 8px; 
+    flex-wrap: wrap; /* Чтобы персонажи переносились если их много */
 }
 .left-half { justify-content: flex-end; } 
 .right-half { justify-content: flex-start; } 
