@@ -100,6 +100,11 @@ io.on('connection', (socket) => {
             gameStarted: false,
             immunityPhaseActive: false,
             
+            // --- НОВІ ПОЛЯ ДЛЯ ОЧИСТКИ ---
+            lastActive: Date.now(), // Час останньої активності
+            finishedAt: null,       // Час завершення гри
+            // -----------------------------
+
             // Основний драфт
             stepIndex: 0, 
             currentTeam: null, 
@@ -134,6 +139,9 @@ io.on('connection', (socket) => {
             socket.emit('error_msg', 'Room not found');
             return;
         }
+
+        // Оновлюємо активність
+        session.lastActive = Date.now();
 
         if (asSpectator || (session.bluePlayer && session.redPlayer)) {
             session.spectators.push(socket.id);
@@ -172,9 +180,11 @@ io.on('connection', (socket) => {
         if (session.blueUserId === userId) {
             session.bluePlayer = socket.id; // Оновлюємо сокет
             role = 'blue';
+            session.lastActive = Date.now(); // Оновлюємо активність
         } else if (session.redUserId === userId) {
             session.redPlayer = socket.id; // Оновлюємо сокет
             role = 'red';
+            session.lastActive = Date.now(); // Оновлюємо активність
         } else {
             // Якщо ні, кидаємо в глядачі
             role = 'spectator';
@@ -193,6 +203,9 @@ io.on('connection', (socket) => {
     socket.on('player_ready', (roomId) => {
         const session = sessions[roomId];
         if (!session) return;
+
+        // Оновлюємо активність
+        session.lastActive = Date.now();
 
         if (socket.id === session.bluePlayer) session.ready.blue = true;
         if (socket.id === session.redPlayer) session.ready.red = true;
@@ -221,6 +234,9 @@ io.on('connection', (socket) => {
     socket.on('action', ({ roomId, charId }) => {
         const session = sessions[roomId];
         if (!session || !session.redPlayer || !session.gameStarted) return;
+
+        // Оновлюємо активність
+        session.lastActive = Date.now();
 
         const isBlueTurn = session.currentTeam === 'blue' && socket.id === session.bluePlayer;
         const isRedTurn = session.currentTeam === 'red' && socket.id === session.redPlayer;
@@ -312,6 +328,9 @@ function nextStep(roomId) {
     session.timer = 60; 
 
     if (session.stepIndex >= session.draftOrder.length) {
+        // Фіксуємо час закінчення гри для очистки
+        session.finishedAt = Date.now();
+        
         io.to(roomId).emit('game_over', getPublicState(session));
         clearInterval(session.timerInterval);
         return;
@@ -354,6 +373,9 @@ function autoPick(roomId) {
     const session = sessions[roomId];
     let allFlat = [];
     Object.values(CHARACTERS_BY_ELEMENT).forEach(arr => allFlat.push(...arr));
+
+    // Оновлюємо активність навіть при автопіку
+    session.lastActive = Date.now();
 
     // Автопік для фази імунітету
     if (session.immunityPhaseActive) {
@@ -427,6 +449,45 @@ function getPublicState(session) {
         gameStarted: session.gameStarted
     };
 }
+
+// === ОЧИСТКА ПАМЯТИ (GARBAGE COLLECTOR) ===
+const CLEANUP_INTERVAL = 60 * 1000; // Перевіряти кожну хвилину
+const SESSION_TIMEOUT = 60 * 60 * 1000; // 1 година таймауту
+
+setInterval(() => {
+    const now = Date.now();
+    const roomIds = Object.keys(sessions);
+    let deletedCount = 0;
+
+    roomIds.forEach(roomId => {
+        const session = sessions[roomId];
+        
+        // Перевіряємо, чи є живі підключення до кімнати
+        // io.sockets.adapter.rooms повертає Map, де ключ - roomId, значення - Set сокетів
+        const room = io.sockets.adapter.rooms.get(roomId);
+        const isEmpty = !room || room.size === 0;
+
+        // Умова 1: Гра закінчилася більше 1 години тому
+        const isOldFinished = session.finishedAt && (now - session.finishedAt > SESSION_TIMEOUT);
+
+        // Умова 2: В кімнаті нікого немає І вона не активна більше 1 години
+        // (додаємо перевірку часу, щоб не видалити кімнату, створену 1 секунду тому, куди творець ще не встиг зайти)
+        const isAbandoned = isEmpty && (now - session.lastActive > SESSION_TIMEOUT);
+
+        if (isOldFinished || isAbandoned) {
+            // Зупиняємо таймер драфту, якщо він йшов
+            if (session.timerInterval) clearInterval(session.timerInterval);
+            
+            // Видаляємо сесію з пам'яті
+            delete sessions[roomId];
+            deletedCount++;
+        }
+    });
+
+    if (deletedCount > 0) {
+        console.log(`[Cleanup] Removed ${deletedCount} old sessions. Active sessions: ${Object.keys(sessions).length}`);
+    }
+}, CLEANUP_INTERVAL);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server started on :${PORT}`));
