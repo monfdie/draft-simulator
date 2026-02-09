@@ -90,58 +90,29 @@ button {
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { font-family: 'Cinzel', serif; font-size: 24px; color: rgba(255, 255, 255, 0.2); }
 
+/* === NEW: IMMUNITY SLOT HIGHLIGHT (IN MAIN DRAFT) === */
+.slot-immunity-pick {
+    border-color: #28a745 !important; /* Зеленый цвет для иммунитетных слотов */
+    background: rgba(40, 167, 69, 0.15) !important;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+}
+
 .controls-area { display: flex; justify-content: center; height: 40px; position: relative; z-index: 20; margin-top: -20px; margin-bottom: 10px; }
 .confirm-btn { display: flex; justify-content: center; align-items: center; background: #222; border: 1px solid #555; color: #999; padding: 8px 30px; font-size: 1.1em; font-family: 'Cinzel', serif; cursor: default; transition: all 0.2s; letter-spacing: 2px; }
 .confirm-btn:not(:disabled) { background: #d4af37; border-color: #fff; color: #000; box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); cursor: pointer; transform: scale(1.1); }
 
-/* === NEW: IMMUNITY TOP CONTAINER === */
+/* === IMMUNITY TOP CONTAINER === */
 .immunity-top-container {
-    position: absolute;
-    top: 5px; /* At the very top of draft area */
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 50;
-    gap: 5px;
+    position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; z-index: 50; gap: 5px;
 }
-
-.im-label {
-    font-family: 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: bold;
-    color: #888;
-    letter-spacing: 2px;
-}
-
-.im-row {
-    display: flex;
-    gap: 8px;
-    background: rgba(0,0,0,0.5);
-    padding: 5px;
-    border-radius: 20px;
-    border: 1px solid #333;
-}
-
-.im-icon {
-    width: 40px; /* Small size */
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: #000;
-}
-
-/* RED Border for Bans, BLUE Border for Picks */
+.im-label { font-family: 'Segoe UI', sans-serif; font-size: 10px; font-weight: bold; color: #888; letter-spacing: 2px; }
+.im-row { display: flex; gap: 8px; background: rgba(0,0,0,0.5); padding: 5px; border-radius: 20px; border: 1px solid #333; }
+.im-icon { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: #000; }
 .im-ban { border: 2px solid #ff4444; position: relative; }
-.im-pick { border: 2px solid #4facfe; }
-
-.im-ban::after {
-    content: '';
-    position: absolute; top:0; left:0; width:100%; height:100%;
-    background: rgba(255, 0, 0, 0.3);
-}
-
+.im-ban::after { content: ''; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255, 0, 0, 0.3); }
+.im-pick { border: 2px solid #28a745; } /* ЗЕЛЕНАЯ ОБВОДКА ДЛЯ ПИКОВ ИММУНИТЕТА */
+.im-empty { background: rgba(255,255,255,0.05); } /* Пустой слот */
 .im-icon img { width: 100%; height: 100%; object-fit: cover; }
 
 /* === POOL & LADDER === */
@@ -161,7 +132,7 @@ button {
 .ladder-step { font-family: 'Segoe UI', sans-serif; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 2px; text-transform: uppercase; opacity: 0.3; width: 100%; box-sizing: border-box; transition: 0.3s; }
 .step-blue { text-align: left; color: #4facfe; border-left: 2px solid #4facfe; }
 .step-red { text-align: right; color: #ff6b6b; border-right: 2px solid #ff6b6b; }
-.step-immunity { color: #d4af37; border-color: #d4af37; } /* Gold text for ladder immunity steps */
+.step-immunity { color: #d4af37; border-color: #d4af37; } 
 .step-active { opacity: 1; background: #222; color: #fff !important; border-color: #fff !important; transform: scale(1.1); }
 .step-done { text-decoration: line-through; opacity: 0.15; }
 
@@ -178,5 +149,12 @@ button {
 .char-option:hover img { opacity: 1; }
 .selected-pending { border-color: #d4af37 !important; box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important; transform: scale(1.1); z-index: 20; }
 .selected-pending img { opacity: 1; }
-.immunity-highlight { border-color: #d4af37 !important; box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); opacity: 1 !important; filter: none !important; }
+
+/* === ЗЕЛЕНОЕ СВЕЧЕНИЕ ДЛЯ ДОСТУПНЫХ ИММУНОВ === */
+.immunity-highlight { 
+    border-color: #28a745 !important; 
+    box-shadow: 0 0 10px #28a745 !important;
+    opacity: 1 !important; 
+    filter: none !important; 
+}
 .disabled { opacity: 0.15; filter: grayscale(100%); pointer-events: none; border-color: transparent; }
