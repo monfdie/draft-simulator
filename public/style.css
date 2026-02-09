@@ -179,9 +179,16 @@ button {
 .red-res { color: #ff6b6b; }
 #status { font-size: 18px; color: #ece5d8; text-transform: uppercase; letter-spacing: 1px; }
 
-#room-display {
+/* ИЗМЕНЕНИЕ: Стили для блока с кодом */
+#room-container {
     position: absolute;
     left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#room-display {
     font-family: 'Segoe UI', monospace;
     font-size: 16px;
     color: #d4af37;
@@ -189,6 +196,31 @@ button {
     padding: 5px 10px;
     border: 1px solid #444;
     border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#room-display:hover {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: #d4af37;
+}
+
+/* ИЗМЕНЕНИЕ: Всплывающее уведомление */
+#copy-toast {
+    visibility: hidden;
+    background-color: #28a745;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+#copy-toast.show {
+    visibility: visible;
+    opacity: 1;
 }
 
 .draft-area { 
@@ -215,7 +247,6 @@ button {
     margin-bottom: 10px;
 }
 
-/* ОБНОВЛЕНО: уменьшен шрифт в ~1.7 раза */
 .player-header h2 { 
     font-family: 'Cinzel', serif;
     font-size: 1.06em;          
@@ -230,7 +261,6 @@ button {
 .blue-side h2 { color: #4facfe; border: 1px solid rgba(79, 172, 254, 0.3); }
 .red-side h2 { color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); }
 
-/* --- ОБНОВЛЕНО: Уменьшенный свич (в 2 раза) --- */
 .ready-switch {
     width: 30px;                
     height: 15px;               
@@ -259,13 +289,11 @@ button {
     font-size: 8px;             
 }
 
-/* СОСТОЯНИЕ: НЕ ГОТОВ */
 .switch-circle::before {
     content: "✖";
     color: black;
 }
 
-/* СОСТОЯНИЕ: ГОТОВ */
 .ready-on {
     background: #28a745; 
     border-color: #20c997;
@@ -279,8 +307,6 @@ button {
     content: "✔"; 
     color: #28a745; 
 }
-/* ------------------------------- */
-
 
 .ban-row { display: flex; gap: 12px; margin-bottom: 15px; } 
 .pick-row { display: flex; gap: 8px; margin-bottom: 8px; }
@@ -319,7 +345,7 @@ button {
 .step-number { 
     font-family: 'Cinzel', serif; 
     font-size: 26px; 
-    color: rgba(255, 255, 255, 0.4); /* Было 0.15, стало 0.4 для видимости */
+    color: rgba(255, 255, 255, 0.4); 
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
