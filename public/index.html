@@ -90,7 +90,7 @@
         </div>
 
         <div class="controls-area">
-            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>Select</button>
+            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>SELECT</button>
         </div>
 
         <div class="char-pool" id="char-pool-container">
@@ -266,24 +266,24 @@
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
 
-            // 1. Создаем ЛЕСЕНКУ (Ladder)
+            // 1. ЛЕСЕНКА (Ladder)
             const ladderDiv = document.createElement('div');
             ladderDiv.className = 'ladder-container';
             ladderDiv.id = 'ladder-container';
             
-            // Генерируем шаги
             const schema = DRAFT_SCHEMAS[currentDraftType] || DRAFT_SCHEMAS['gitcg'];
             schema.forEach((step, index) => {
                 const stepDiv = document.createElement('div');
                 stepDiv.className = `ladder-step step-${step.team}`; 
                 stepDiv.id = `step-node-${index}`;
+                // Формат: "1. BAN"
                 stepDiv.innerText = `${index + 1}. ${step.type}`; 
                 ladderDiv.appendChild(stepDiv);
             });
 
             container.appendChild(ladderDiv);
 
-            // 2. Создаем ряды персонажей
+            // 2. Ряды персонажей
             const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
             elements.forEach(elem => {
                 const rowDiv = document.createElement('div');
@@ -298,7 +298,7 @@
                 leftPart.forEach(char => leftDiv.appendChild(createChar(char)));
 
                 const gapDiv = document.createElement('div');
-                gapDiv.className = 'row-gap';
+                gapDiv.className = 'row-gap'; // Пустота под лесенку
 
                 const rightDiv = document.createElement('div');
                 rightDiv.className = 'row-half right-half';
@@ -347,9 +347,6 @@
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
 
-            // === ИСПРАВЛЕНИЕ ЗДЕСЬ ===
-            // Сервер присылает номер следующего шага (напр. 1), а массив с 0.
-            // Поэтому отнимаем 1, чтобы получить текущий индекс в массиве.
             const currentIdx = state.stepIndex - 1; 
 
             const schemaLength = (state.draftType === 'classic' ? 10 : 28);
@@ -394,7 +391,7 @@
 
             const team = state.currentTeam === 'blue' ? 'BLUE' : 'RED';
             const act = state.currentAction === 'ban' ? 'BANNING' : 'PICKING';
-            const isGameOver = (state.stepIndex > schemaLength); // Тут используем оригинальный (1-based)
+            const isGameOver = (state.stepIndex > schemaLength); 
             
             let statusText = "";
             if (!state.gameStarted) {
