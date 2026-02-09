@@ -95,7 +95,6 @@
     <script>
         const socket = io({ transports: ['websocket'] });
 
-        // DRAFT SCHEMAS
         const DRAFT_SCHEMAS = {
             'gitcg': [
                 { team: 'blue', type: 'ban' }, { team: 'blue', type: 'ban' },
@@ -188,7 +187,6 @@
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
             
-            // Ladder
             const ladder = document.createElement('div'); ladder.className = 'ladder-container';
             const schema = DRAFT_SCHEMAS[currentDraftType];
             schema.forEach((step, i) => {
@@ -200,7 +198,6 @@
             });
             container.appendChild(ladder);
 
-            // Chars
             ['cryo','hydro','pyro','electro','anemo','geo','dendro'].forEach(elem => {
                 const row = document.createElement('div'); row.className = `element-row row-${elem}`;
                 const chars = charsData[elem], mid = Math.ceil(chars.length/2);
@@ -234,39 +231,29 @@
             }
         }
 
-        // --- UPDATED IMMUNITY TOP DISPLAY ---
         function updateImmunityTop(state) {
             const topDisp = document.getElementById('immunity-top-display');
-            if(state.draftType !== 'gitcg_cup_2') {
-                topDisp.style.display = 'none';
-                return;
-            }
+            if(state.draftType !== 'gitcg_cup_2') { topDisp.style.display = 'none'; return; }
             topDisp.style.display = 'flex';
             const row = document.getElementById('immunity-icons-row');
             row.innerHTML = '';
 
             const bans = state.immunityBans || [];
             const picks = state.immunityPool || [];
-
             const slots = [
-                { id: bans[0], type: 'ban' },  // Blue Ban
-                { id: picks[0], type: 'pick' }, // Blue Pick
-                { id: picks[1], type: 'pick' }, // Red Pick
-                { id: bans[1], type: 'ban' }   // Red Ban
+                { id: bans[0], type: 'ban' }, { id: picks[0], type: 'pick' },
+                { id: picks[1], type: 'pick' }, { id: bans[1], type: 'ban' }
             ];
 
             slots.forEach(slot => {
                 const div = document.createElement('div');
-                div.className = `im-icon im-${slot.type}`; 
-                
+                div.className = `im-icon im-${slot.type}`;
                 if (slot.id) {
                     let all = []; Object.values(charsData).forEach(a => all.push(...a));
                     const char = all.find(c => c.id === slot.id);
-                    if(char) {
-                        div.innerHTML = `<img src="${char.img}">`;
-                    }
+                    if(char) div.innerHTML = `<img src="${char.img}">`;
                 } else {
-                    div.classList.add('im-empty'); 
+                    div.classList.add('im-empty');
                 }
                 row.appendChild(div);
             });
@@ -353,7 +340,6 @@
             const steps = isClassic ? STEPS_CLASSIC : STEPS_GITCG;
             const banCount = isClassic ? 2 : 5;
             
-            // Получаем схему для проверки иммунитетных ходов
             const currentSchema = DRAFT_SCHEMAS[currentDraftType];
 
             const fill = (containerId, items, max, stepNumbers, isBan) => {
@@ -366,12 +352,10 @@
                     
                     if (isBan) slot.classList.add('slot-ban');
                     
-                    // --- НОВОЕ: Подсветка иммунитетных слотов в основном драфте ---
-                    const stepNum = stepNumbers[i]; // 1-based номер шага
+                    const stepNum = stepNumbers[i];
                     if (stepNum && currentSchema && currentSchema[stepNum - 1] && currentSchema[stepNum - 1].immunity) {
                         slot.classList.add('slot-immunity-pick');
                     }
-                    // -------------------------------------------------------------
 
                     let charId = null;
                     if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
@@ -379,8 +363,7 @@
                         const char = allFlat.find(c => c.id === charId);
                         if (char) slot.innerHTML = `<img src="${char.img}">`;
                     } else {
-                        const stepDisplay = stepNum || '';
-                        slot.innerHTML = `<span class="step-number">${stepDisplay}</span>`;
+                        slot.innerHTML = `<span class="step-number">${stepNum || ''}</span>`;
                     }
                     div.appendChild(slot);
                 }
