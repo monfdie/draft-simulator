@@ -49,7 +49,7 @@
 
         <div class="draft-area">
             <div id="immunity-top-display" class="immunity-top-container" style="display: none;">
-                <div class="im-label">IMMUNE BAN / PICK</div>
+                <div class="im-label">IMMUNE</div>
                 <div class="im-row" id="immunity-icons-row"></div>
             </div>
 
@@ -234,6 +234,44 @@
             }
         }
 
+        // --- UPDATED IMMUNITY TOP DISPLAY ---
+        function updateImmunityTop(state) {
+            const topDisp = document.getElementById('immunity-top-display');
+            if(state.draftType !== 'gitcg_cup_2') {
+                topDisp.style.display = 'none';
+                return;
+            }
+            topDisp.style.display = 'flex';
+            const row = document.getElementById('immunity-icons-row');
+            row.innerHTML = '';
+
+            const bans = state.immunityBans || [];
+            const picks = state.immunityPool || [];
+
+            const slots = [
+                { id: bans[0], type: 'ban' },  // Blue Ban
+                { id: picks[0], type: 'pick' }, // Blue Pick
+                { id: picks[1], type: 'pick' }, // Red Pick
+                { id: bans[1], type: 'ban' }   // Red Ban
+            ];
+
+            slots.forEach(slot => {
+                const div = document.createElement('div');
+                div.className = `im-icon im-${slot.type}`; 
+                
+                if (slot.id) {
+                    let all = []; Object.values(charsData).forEach(a => all.push(...a));
+                    const char = all.find(c => c.id === slot.id);
+                    if(char) {
+                        div.innerHTML = `<img src="${char.img}">`;
+                    }
+                } else {
+                    div.classList.add('im-empty'); 
+                }
+                row.appendChild(div);
+            });
+        }
+
         function updateUI(state) {
             isGameStarted = state.gameStarted; activeTeam = state.currentTeam;
             document.getElementById('blue-ready-switch').style.display = state.gameStarted?'none':'flex';
@@ -245,26 +283,13 @@
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
             
-            // Status
             let txt = "WAITING...";
             if(state.immunityPhaseActive) txt = `IMMUNITY: ${state.currentTeam} ${state.currentAction}`;
             else if(state.gameStarted) txt = `${state.currentTeam} IS ${state.currentAction==='ban'?'BANNING':'PICKING'}`;
             document.getElementById('status').innerText = txt.toUpperCase();
 
-            // === TOP IMMUNITY DISPLAY ===
-            const topDisp = document.getElementById('immunity-top-display');
-            if(state.draftType === 'gitcg_cup_2') {
-                topDisp.style.display = 'flex';
-                const row = document.getElementById('immunity-icons-row');
-                row.innerHTML = '';
-                
-                (state.immunityBans || []).forEach(id => addImmunityIcon(id, 'ban', row));
-                (state.immunityPool || []).forEach(id => addImmunityIcon(id, 'pick', row));
-            } else {
-                topDisp.style.display = 'none';
-            }
+            updateImmunityTop(state);
 
-            // Ladder
             const idx = state.stepIndex - 1;
             const len = DRAFT_SCHEMAS[currentDraftType].length;
             if(!state.immunityPhaseActive) {
@@ -282,45 +307,34 @@
 
             renderSlots(state);
 
-            // Disable Logic
             document.querySelectorAll('.char-option').forEach(el => {
                 el.classList.remove('disabled', 'immunity-highlight');
             });
 
-            // 1. Global Bans -> Always disabled
             state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
-            
-            // 2. Already Picked
             [...state.bluePicks, ...state.redPicks].forEach(id => document.getElementById(`char-${id}`)?.classList.add('disabled'));
 
             if(state.immunityPhaseActive) {
-                // Immunity Phase: cannot pick already banned-for-immunity or already picked-for-immunity
                 [...state.immunityBans, ...state.immunityPool].forEach(id => 
                     document.getElementById(`char-${id}`)?.classList.add('disabled'));
             } else {
-                // Main Draft
                 const step = DRAFT_SCHEMAS[currentDraftType][idx];
                 const isImmunityTurn = step && step.immunity;
 
-                // === ИСПРАВЛЕНИЕ ВИЗУАЛА: БЛОКИРОВКА ПУЛА ИММУНИТЕТА ===
                 state.immunityPool.forEach(id => {
                     const el = document.getElementById(`char-${id}`);
                     if(!el) return;
 
                     if(state.currentAction === 'ban') {
-                        // Нельзя банить иммунитетных
                         el.classList.add('disabled');
                     } else if (state.currentAction === 'pick') {
-                        // Пик фаза
                         if(isImmunityTurn) {
-                            // Если ход иммунитетный - можно брать (если еще не взял сам)
                             const myPicks = activeTeam === 'blue' ? state.bluePicks : state.redPicks;
                             if(!myPicks.includes(id)) {
                                 el.classList.remove('disabled');
-                                el.classList.add('immunity-highlight');
+                                el.classList.add('immunity-highlight'); 
                             }
                         } else {
-                            // Если обычный пик - иммунитетные недоступны
                             el.classList.add('disabled');
                         }
                     }
@@ -332,23 +346,15 @@
             }
         }
 
-        function addImmunityIcon(id, type, container) {
-            let all = []; Object.values(charsData).forEach(a => all.push(...a));
-            const char = all.find(c => c.id === id);
-            if(char) {
-                const div = document.createElement('div');
-                div.className = `im-icon im-${type}`;
-                div.innerHTML = `<img src="${char.img}">`;
-                container.appendChild(div);
-            }
-        }
-
         function renderSlots(state) {
             let allFlat = [];
             Object.values(charsData).forEach(arr => allFlat.push(...arr));
             const isClassic = state.draftType === 'classic';
             const steps = isClassic ? STEPS_CLASSIC : STEPS_GITCG;
             const banCount = isClassic ? 2 : 5;
+            
+            // Получаем схему для проверки иммунитетных ходов
+            const currentSchema = DRAFT_SCHEMAS[currentDraftType];
 
             const fill = (containerId, items, max, stepNumbers, isBan) => {
                 const div = document.getElementById(containerId);
@@ -357,15 +363,24 @@
                 for (let i = 0; i < max; i++) {
                     const slot = document.createElement('div');
                     slot.className = 'slot-circle';
+                    
                     if (isBan) slot.classList.add('slot-ban');
+                    
+                    // --- НОВОЕ: Подсветка иммунитетных слотов в основном драфте ---
+                    const stepNum = stepNumbers[i]; // 1-based номер шага
+                    if (stepNum && currentSchema && currentSchema[stepNum - 1] && currentSchema[stepNum - 1].immunity) {
+                        slot.classList.add('slot-immunity-pick');
+                    }
+                    // -------------------------------------------------------------
+
                     let charId = null;
                     if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
                     if (charId) {
                         const char = allFlat.find(c => c.id === charId);
                         if (char) slot.innerHTML = `<img src="${char.img}">`;
                     } else {
-                        const stepNum = stepNumbers[i] || '';
-                        slot.innerHTML = `<span class="step-number">${stepNum}</span>`;
+                        const stepDisplay = stepNum || '';
+                        slot.innerHTML = `<span class="step-number">${stepDisplay}</span>`;
                     }
                     div.appendChild(slot);
                 }
