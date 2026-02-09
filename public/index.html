@@ -59,7 +59,8 @@
         <div class="draft-area">
             <div class="team-side blue-side">
                 <div class="player-header">
-                    <div id="blue-timer" class="turn-timer">60</div> <h2 id="blue-name-display">PLAYER 1</h2>
+                    <div id="blue-timer" class="turn-timer">60</div>
+                    <h2 id="blue-name-display">PLAYER 1</h2>
                     <div id="blue-ready-switch" class="ready-switch" onclick="toggleReady('blue')">
                         <div class="switch-circle"></div>
                     </div>
@@ -80,7 +81,8 @@
                         <div class="switch-circle"></div>
                     </div>
                     <h2 id="red-name-display">PLAYER 2</h2>
-                    <div id="red-timer" class="turn-timer">60</div> </div>
+                    <div id="red-timer" class="turn-timer">60</div>
+                </div>
                 <div class="ban-row" id="red-bans"></div>
                 <div class="pick-row" id="red-picks-1"></div>
                 <div class="pick-row-small" id="red-picks-2"></div>
@@ -104,7 +106,7 @@
         let charsData = {};
         let selectedCharId = null; 
         let isGameStarted = false;
-        let activeTeam = 'blue'; // Отслеживаем чей сейчас ход
+        let activeTeam = 'blue'; 
 
         let myUserId = sessionStorage.getItem('draft_user_id');
         if (!myUserId) {
@@ -177,17 +179,13 @@
             return `${m}:${sec < 10 ? '0' : ''}${sec}`;
         }
 
-        // --- ЛОГИКА ТАЙМЕРОВ ---
         socket.on('timer_tick', (data) => {
             const mainTime = typeof data === 'object' ? data.main : data;
             
-            // Если сейчас ход синих: их таймер идет, красный стоит на 60
-            // Если ход красных: их таймер идет, синий стоит на 60
             if (activeTeam === 'blue') {
                 document.getElementById('blue-timer').innerText = mainTime;
                 document.getElementById('red-timer').innerText = "60";
                 
-                // Эффект красного текста на последних секундах
                 const tEl = document.getElementById('blue-timer');
                 tEl.style.color = mainTime < 10 ? '#ff5555' : '#4facfe';
             } else {
@@ -286,7 +284,7 @@
 
         function updateUI(state) {
             isGameStarted = state.gameStarted;
-            activeTeam = state.currentTeam; // Сохраняем текущую команду
+            activeTeam = state.currentTeam; 
             
             document.getElementById('blue-name-display').innerText = state.blueName;
             document.getElementById('red-name-display').innerText = state.redName;
@@ -308,7 +306,6 @@
                 else switchRed.classList.remove('ready-on');
             }
 
-            // Визуальный сброс таймеров при смене хода
             if(activeTeam === 'blue') {
                 document.getElementById('red-timer').innerText = "60";
                 document.getElementById('red-timer').style.color = "#ff6b6b"; 
@@ -337,11 +334,19 @@
 
             renderSlots(state);
 
+            // 1. Сначала сбрасываем статус "disabled" у всех
             document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled'));
+
+            // 2. Дизейблим уже выбранных и забаненных
             state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
             [...state.bluePicks, ...state.redPicks].forEach(id => {
                 document.getElementById(`char-${id}`)?.classList.add('disabled');
             });
+
+            // 3. НОВОЕ: Если сейчас НЕ мой ход (и я не зритель), дизейблим всё поле
+            if (state.gameStarted && myRole !== 'spectator' && myRole !== state.currentTeam) {
+                 document.querySelectorAll('.char-option').forEach(el => el.classList.add('disabled'));
+            }
         }
 
         function renderSlots(state) {
