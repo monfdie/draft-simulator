@@ -343,7 +343,7 @@
                 document.getElementById(`char-${id}`)?.classList.add('disabled');
             });
 
-            // 3. НОВОЕ: Если сейчас НЕ мой ход (и я не зритель), дизейблим всё поле
+            // 3. Если сейчас НЕ мой ход (и я не зритель), дизейблим всё поле
             if (state.gameStarted && myRole !== 'spectator' && myRole !== state.currentTeam) {
                  document.querySelectorAll('.char-option').forEach(el => el.classList.add('disabled'));
             }
