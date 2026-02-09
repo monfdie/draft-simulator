@@ -168,7 +168,7 @@ button {
     border-bottom: 3px solid #020c1b; 
     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     z-index: 10;
-    flex-shrink: 0; /* Не сжимать хедер */
+    flex-shrink: 0; 
 }
 
 .reserve-timer { 
@@ -222,20 +222,20 @@ button {
     opacity: 1;
 }
 
-/* DRAFT AREA - ОБНОВЛЕНО: Меньше высоты и отступов */
+/* DRAFT AREA - ВОЗВРАЩЕНО К ИСХОДНОМУ РАЗМЕРУ */
 .draft-area { 
-    height: 22vh; /* Было 34vh, стало компактнее */
+    height: 34vh; /* Вернули 34vh */
     display: flex; 
     justify-content: center; 
-    gap: 20px; 
-    padding: 0 50px; /* Убраны отступы сверху/снизу */
-    align-items: center; /* Центрирование по вертикали */
+    gap: 80px; /* Вернули большой gap */
+    padding: 10px 50px;
+    align-items: center; 
     background: radial-gradient(ellipse at center, rgba(70, 78, 114, 0.3) 0%, transparent 70%);
-    flex-shrink: 0; /* Фиксированная высота */
+    flex-shrink: 0; 
 }
 
 .team-side { 
-    width: 40%; 
+    width: 45%; /* Вернули ширину */
     display: flex; 
     flex-direction: column; 
     align-items: center; 
@@ -248,13 +248,13 @@ button {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 10px; 
-    gap: 50px; 
+    padding-top: 60px; /* Отступ под старый размер */
+    gap: 65px; 
 }
 
 .mid-label {
     font-family: 'Cinzel', serif;
-    font-size: 1.2em;
+    font-size: 1.4em;
     color: #5a6a8a;
     letter-spacing: 3px;
     text-shadow: 0 0 5px rgba(0,0,0,0.8);
@@ -265,14 +265,14 @@ button {
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-bottom: 5px; /* Уменьшен отступ */
+    margin-bottom: 10px;
     height: 40px; 
 }
 
 /* ТАЙМЕРЫ */
 .turn-timer {
     font-family: 'Cinzel', serif;
-    font-size: 32px; /* Чуть меньше */
+    font-size: 36px;
     font-weight: bold;
     min-width: 50px;
     text-align: center;
@@ -283,7 +283,7 @@ button {
 
 .player-header h2 { 
     font-family: 'Cinzel', serif;
-    font-size: 1em;          
+    font-size: 1.06em;          
     margin: 0; 
     text-transform: uppercase; 
     text-shadow: 0 2px 5px rgba(0,0,0,0.8);
@@ -342,14 +342,14 @@ button {
     color: #28a745; 
 }
 
-.ban-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; } 
-.pick-row { display: flex; gap: 5px; margin-bottom: 5px; justify-content: center; }
-.pick-row-small { display: flex; gap: 5px; justify-content: center; }
+.ban-row { display: flex; gap: 12px; margin-bottom: 15px; justify-content: center; } 
+.pick-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; }
+.pick-row-small { display: flex; gap: 8px; justify-content: center; }
 
-/* ОБНОВЛЕНО: Уменьшенный размер слотов */
+/* ОБНОВЛЕНО: Вернули 70px */
 .slot-circle {
-    width: 55px; /* Было 70px */
-    height: 55px; /* Было 70px */
+    width: 70px; 
+    height: 70px; 
     border-radius: 50%;
     background: radial-gradient(circle, rgba(45, 52, 80, 0.8) 0%, rgba(20, 24, 40, 0.9) 100%);
     border: 2px solid #464e72;
@@ -379,7 +379,7 @@ button {
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { 
     font-family: 'Cinzel', serif; 
-    font-size: 20px; /* Уменьшен шрифт номера шага */
+    font-size: 26px; /* Вернули крупный шрифт */
     color: rgba(255, 255, 255, 0.4); 
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
@@ -419,47 +419,43 @@ button {
     box-shadow: none;
 }
 
-/* CHAR POOL - ОБНОВЛЕНО: Занимает все свободное место */
+/* CHAR POOL */
 .char-pool { 
-    flex-grow: 1; /* Растягивается на все доступное место */
+    flex-grow: 1; /* Растягиваем на остаток */
     background: rgba(18, 21, 31, 0.95); 
     border-top: 3px solid #020c1b; 
     display: flex;
     flex-direction: column;
-    justify-content: flex-start; /* Элементы сверху вниз */
+    justify-content: space-evenly; /* Равномерно распределяем 7 рядов */
     padding: 10px 0;
     box-shadow: 0 -10px 20px rgba(0,0,0,0.5);
-    overflow-y: auto; /* Прокрутка если нужно */
+    overflow: hidden; /* Скрываем вертикальный скролл */
 }
 
-/* ОБНОВЛЕНО: Убраны цветные линии */
+/* ЭЛЕМЕНТЫ В ОДНУ ЛИНИЮ */
 .element-row {
-    min-height: 80px; /* Минимальная высота строки */
-    padding: 5px 0;
+    height: 12%; 
     width: 100%;
     display: flex;
     align-items: center;
-    position: relative;
-    /* Убраны цветные background и border-bottom */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Еле заметный разделитель */
+    padding: 0 20px;
+    gap: 15px; /* Отступ между кружками */
+    overflow-x: auto; /* Горизонтальный скролл */
+    overflow-y: hidden;
+    white-space: nowrap; /* Запрет переноса */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    scrollbar-width: none; /* Скрытие скроллбара в Firefox */
+}
+/* Скрытие скроллбара в Chrome/Safari */
+.element-row::-webkit-scrollbar {
+    display: none;
 }
 
-/* Специальные классы теперь пустые или сброшены */
+/* Специальные классы теперь просто прозрачные */
 .row-cryo, .row-hydro, .row-pyro, .row-electro, .row-anemo, .row-geo, .row-dendro {
     background: transparent;
-    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-
-.row-half {
-    width: 45%; 
-    display: flex;
-    align-items: center;
-    gap: 8px; 
-    flex-wrap: wrap; /* Чтобы персонажи переносились если их много */
-}
-.left-half { justify-content: flex-end; } 
-.right-half { justify-content: flex-start; } 
-.row-gap { width: 10%; }
 
 .char-option { 
     width: 60px;
@@ -470,7 +466,7 @@ button {
     transition: all 0.2s;
     background: #222;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    flex-shrink: 0;
+    flex-shrink: 0; /* Не сжимать кружки */
 }
 
 .char-option img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
