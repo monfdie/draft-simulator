@@ -39,8 +39,8 @@
     <div id="game-screen" style="display:none;">
        <div class="header">
             <div id="room-container">
-                <div id="room-display" onclick="copyRoomCode()" title="Copy">CODE: ----</div>
-                <span id="copy-toast">Copied!</span>
+                <div id="room-display" onclick="copyRoomCode()" title="Click to copy room code">CODE: ----</div>
+                <span id="copy-toast">Code Copied!</span>
             </div>
             <div class="reserve-timer blue-res"><span id="blue-res">5:00</span></div>
             <div id="status">Waiting...</div>
@@ -94,6 +94,31 @@
 
     <script>
         const socket = io({ transports: ['websocket'] });
+
+        // Убрали автозаполнение (DOMContentLoaded)
+
+        // RECONNECT LOGIC
+        socket.on('connect', () => {
+            const savedRoom = sessionStorage.getItem('draft_room_id');
+            const myId = sessionStorage.getItem('draft_user_id');
+            
+            if (savedRoom && myId) {
+                console.log("Attempting reconnect to room:", savedRoom);
+                socket.emit('rejoin_game', { roomId: savedRoom, userId: myId });
+            }
+        });
+
+        socket.on('error_msg', (msg) => {
+            if (msg === 'Session expired' || msg === 'Room not found') {
+                sessionStorage.removeItem('draft_room_id'); 
+                if (document.getElementById('game-screen').style.display !== 'none') {
+                    alert("Game session expired.");
+                    window.location.href = "/"; 
+                }
+            } else {
+                alert(msg);
+            }
+        });
 
         const DRAFT_SCHEMAS = {
             'gitcg': [
@@ -159,6 +184,9 @@
         socket.on('init_game', (data) => {
             myRole = data.role; currentRoom = data.roomId; charsData = data.chars;
             currentDraftType = data.state.draftType || 'gitcg';
+            
+            sessionStorage.setItem('draft_room_id', currentRoom);
+
             document.getElementById('room-display').innerText = `CODE: ${currentRoom}` + (myRole === 'spectator' ? " (SPEC)" : "");
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
@@ -167,7 +195,12 @@
 
         socket.on('update_state', updateUI);
         socket.on('game_started', () => { isGameStarted = true; });
-        socket.on('game_over', (state) => { updateUI(state); setTimeout(() => alert("Draft Completed!"), 500); });
+        socket.on('game_over', (state) => { 
+            updateUI(state); 
+            setTimeout(() => alert("Draft Completed!"), 500); 
+            sessionStorage.removeItem('draft_room_id'); 
+        });
+        
         socket.on('timer_tick', (data) => {
             const t = typeof data === 'object' ? data.main : data;
             const b = document.getElementById('blue-timer'), r = document.getElementById('red-timer');
@@ -181,7 +214,17 @@
 
         function formatTime(s) { const m=Math.floor(s/60), sec=s%60; return `${m}:${sec<10?'0':''}${sec}`; }
         function toggleReady(r) { if(myRole===r) socket.emit('player_ready', currentRoom); }
-        function copyRoomCode() { navigator.clipboard.writeText(currentRoom); }
+        
+        // === ВЕРНУЛИ СТАРУЮ ФУНКЦИЮ ===
+        function copyRoomCode() { 
+            if (!currentRoom) return;
+            navigator.clipboard.writeText(currentRoom).then(() => {
+                const toast = document.getElementById('copy-toast');
+                toast.innerText = "Code Copied!"; // Текст уведомления
+                toast.classList.add('show');
+                setTimeout(() => { toast.classList.remove('show'); }, 2000);
+            });
+        }
         
         function renderRows() {
             const container = document.getElementById('char-pool-container');
