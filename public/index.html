@@ -46,7 +46,10 @@
 
     <div id="game-screen" style="display:none;">
        <div class="header">
-            <div id="room-display">CODE: ----</div>
+            <div id="room-container">
+                <div id="room-display" onclick="copyRoomCode()" title="Нажмите, чтобы скопировать">CODE: ----</div>
+                <span id="copy-toast">Скопировано!</span>
+            </div>
             
             <div class="reserve-timer blue-res"><span id="blue-res">5:00</span></div>
             <div id="timer">60</div>
@@ -104,14 +107,12 @@
         let selectedCharId = null; 
         let isGameStarted = false;
         
-        // --- ИСПРАВЛЕНИЕ: ИСПОЛЬЗУЕМ sessionStorage ВМЕСТО localStorage ---
-        // Это позволяет открывать разные вкладки как разных игроков
+        // ИСПРАВЛЕНИЕ: ИСПОЛЬЗУЕМ sessionStorage ВМЕСТО localStorage
         let myUserId = sessionStorage.getItem('draft_user_id');
         if (!myUserId) {
             myUserId = Math.random().toString(36).substring(2) + Date.now().toString(36);
             sessionStorage.setItem('draft_user_id', myUserId);
         }
-        // -------------------------------------
 
         const STEPS_GITCG = {
             blueBan: [1, 2, 5, 13, 21],
@@ -131,7 +132,6 @@
             const nick = document.getElementById('nickname-input').value;
             const type = document.getElementById('draft-type-select').value;
             if(!nick) return alert("Please enter a nickname!");
-            // Отправляем userId
             socket.emit('create_game', { nickname: nick, draftType: type, userId: myUserId }); 
         }
 
@@ -141,7 +141,6 @@
             const isSpec = document.getElementById('spectator-check').checked;
             
             if(!nick || !room) return alert("Please enter a nickname and room code!");
-            // Отправляем userId
             socket.emit('join_game', {roomId: room, nickname: nick, asSpectator: isSpec, userId: myUserId}); 
         }
 
@@ -204,6 +203,24 @@
             if (myRole !== role) return;
             if (isGameStarted) return;
             socket.emit('player_ready', currentRoom);
+        }
+
+        // --- НОВАЯ ФУНКЦИЯ КОПИРОВАНИЯ ---
+        function copyRoomCode() {
+            if (!currentRoom) return;
+
+            // Копируем текст в буфер обмена
+            navigator.clipboard.writeText(currentRoom).then(() => {
+                const toast = document.getElementById('copy-toast');
+                toast.classList.add('show');
+                
+                // Убираем уведомление через 2 секунды
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }).catch(err => {
+                console.error('Ошибка при копировании: ', err);
+            });
         }
 
         function renderRows() {
