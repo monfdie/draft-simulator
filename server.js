@@ -56,7 +56,7 @@ const DRAFT_SCHEMAS = {
 
 // Create GITCG CUP 2
 const gitcgCup2Schema = JSON.parse(JSON.stringify(DRAFT_SCHEMAS['gitcg']));
-// Mark Immunity Picks (indices are 0-based from server perspective)
+// Mark Immunity Picks (indices are 0-based)
 gitcgCup2Schema[13].immunity = true; // Blue Pick 4
 gitcgCup2Schema[14].immunity = true; // Red Pick 4
 gitcgCup2Schema[25].immunity = true; // Blue Pick 9
@@ -178,10 +178,8 @@ io.on('connection', (socket) => {
 
         // === IMMUNITY PHASE ===
         if (session.immunityPhaseActive) {
-            // Cannot pick characters already in immunity pool or banned from immunity
             const isImmunityBanned = session.immunityBans.includes(charId);
             const isImmunityPicked = session.immunityPool.includes(charId);
-            
             if (isImmunityBanned || isImmunityPicked) return;
 
             if (session.currentAction === 'immunity_ban') {
@@ -189,7 +187,6 @@ io.on('connection', (socket) => {
             } else if (session.currentAction === 'immunity_pick') {
                 session.immunityPool.push(charId);
             }
-            
             nextImmunityStep(roomId);
             return;
         }
@@ -198,22 +195,29 @@ io.on('connection', (socket) => {
         const currentConfig = session.draftOrder[session.stepIndex];
         const isImmunityTurn = !!currentConfig.immunity;
 
+        // Валидация глобальных банов и пиков
         const isGlobalBanned = session.bans.some(b => b.id === charId);
         const isPickedByBlue = session.bluePicks.includes(charId);
         const isPickedByRed = session.redPicks.includes(charId);
-        
-        // Basic check: Global Bans (from MAIN draft) block everything
-        if (isGlobalBanned) return;
+        const isInImmunityPool = session.immunityPool.includes(charId);
 
-        // Self check: cannot have duplicate in OWN team
+        if (isGlobalBanned) return;
         if (session.currentTeam === 'blue' && isPickedByBlue) return;
         if (session.currentTeam === 'red' && isPickedByRed) return;
 
+        // === ИСПРАВЛЕНИЕ: БЛОКИРОВКА ИММУНИТЕТНЫХ ПЕРСОНАЖЕЙ ===
+        if (isInImmunityPool) {
+            // Если это БАН - нельзя банить иммунитетного (он уже "защищен" попаданием в пул)
+            if (session.currentAction === 'ban') return;
+            
+            // Если это ПИК, но НЕ иммунитетный ход - нельзя брать
+            if (session.currentAction === 'pick' && !isImmunityTurn) return;
+        }
+
         let isAvailable = !isPickedByBlue && !isPickedByRed;
 
-        // IMMUNITY RULE: 
-        // If it's an immunity turn, AND char is in immunity pool -> available even if taken by opponent
-        if (isImmunityTurn && session.immunityPool.includes(charId)) {
+        // Разрешаем дубликат, если это иммунитетный ход и персонаж в пуле
+        if (isImmunityTurn && isInImmunityPool) {
             isAvailable = true; 
         }
 
@@ -247,7 +251,6 @@ function nextImmunityStep(roomId) {
         session.currentTeam = config.team;
         session.currentAction = config.type;
     }
-    
     io.to(roomId).emit('update_state', getPublicState(session));
 }
 
@@ -277,10 +280,13 @@ function startTimer(roomId) {
         if (session.timer > 0) {
             session.timer--;
         } else {
-            // Simple logic: if timer runs out, auto-pick logic (simplified)
-            // Ideally we auto-pick/ban
             if (session.currentTeam === 'blue') session.blueReserve--;
             else session.redReserve--;
+            
+            if(session.blueReserve < -5 || session.redReserve < -5) {
+               // Можно добавить автопик при истечении резерва
+               autoPick(roomId); 
+            }
         }
 
         io.to(roomId).emit('timer_tick', {
@@ -289,6 +295,64 @@ function startTimer(roomId) {
             redReserve: session.redReserve
         });
     }, 1000);
+}
+
+function autoPick(roomId) {
+    const session = sessions[roomId];
+    let allFlat = [];
+    Object.values(CHARACTERS_BY_ELEMENT).forEach(arr => allFlat.push(...arr));
+
+    if (session.immunityPhaseActive) {
+        const available = allFlat.filter(c => !session.immunityBans.includes(c.id) && !session.immunityPool.includes(c.id));
+        if (available.length > 0) {
+            const r = available[Math.floor(Math.random() * available.length)];
+            if (session.currentAction === 'immunity_ban') session.immunityBans.push(r.id);
+            else session.immunityPool.push(r.id);
+            nextImmunityStep(roomId);
+        }
+        return;
+    }
+
+    const currentConfig = session.draftOrder[session.stepIndex];
+    const isImmunityTurn = !!currentConfig.immunity;
+
+    const available = allFlat.filter(c => {
+        const isBanned = session.bans.some(b => b.id === c.id);
+        if (isBanned) return false;
+        
+        const myPicks = session.currentTeam === 'blue' ? session.bluePicks : session.redPicks;
+        const oppPicks = session.currentTeam === 'blue' ? session.redPicks : session.bluePicks;
+        
+        if (myPicks.includes(c.id)) return false;
+        
+        const isInImmunityPool = session.immunityPool.includes(c.id);
+
+        // === ИСПРАВЛЕНИЕ АВТОПИКА ===
+        // Если персонаж в пуле иммунитета:
+        if (isInImmunityPool) {
+            // Нельзя банить
+            if (session.currentAction === 'ban') return false;
+            // Нельзя пикать на обычном ходе
+            if (session.currentAction === 'pick' && !isImmunityTurn) return false;
+        }
+
+        if (oppPicks.includes(c.id)) {
+            if (isImmunityTurn && isInImmunityPool) return true;
+            return false;
+        }
+        return true;
+    });
+
+    if (available.length > 0) {
+        const randomChar = available[Math.floor(Math.random() * available.length)];
+        if (session.currentAction === 'ban') {
+            session.bans.push({ id: randomChar.id, team: session.currentTeam });
+        } else {
+            if (session.currentTeam === 'blue') session.bluePicks.push(randomChar.id);
+            else session.redPicks.push(randomChar.id);
+        }
+        nextStep(roomId);
+    }
 }
 
 function getPublicState(session) {
