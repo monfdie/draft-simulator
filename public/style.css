@@ -342,16 +342,36 @@ button {
     color: #28a745; 
 }
 
-/* Стили строк */
-.ban-row { display: flex; gap: 12px; margin-bottom: 15px; justify-content: center; } 
-.pick-row { display: flex; gap: 8px; margin-bottom: 8px; justify-content: center; }
-.pick-row-small { display: flex; gap: 8px; justify-content: center; }
+/* === СТИЛИ РЯДОВ БАНОВ И ПИКОВ === */
+/* Базовые стили для всех рядов */
+.ban-row, .pick-row, .pick-row-small { 
+    display: flex; 
+    gap: 12px; 
+    margin-bottom: 8px; 
+    /* justify-content удален из общего, чтобы задавать отдельно */
+}
+.pick-row-small { gap: 8px; }
 
-/* === НОВОЕ: Переворачиваем порядок для Синей команды (чтобы шло от центра) === */
+/* СИНЯЯ СТОРОНА (Player 1)
+   flex-direction: row-reverse -> элементы идут справа налево (1, 2, 3...)
+   justify-content: flex-start -> в режиме reverse "start" это правый край (центр экрана)
+*/
 .blue-side .ban-row, 
 .blue-side .pick-row, 
 .blue-side .pick-row-small {
     flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+/* КРАСНАЯ СТОРОНА (Player 2)
+   flex-direction: row -> элементы идут слева направо
+   justify-content: flex-start -> "start" это левый край (центр экрана)
+*/
+.red-side .ban-row, 
+.red-side .pick-row, 
+.red-side .pick-row-small {
+    flex-direction: row;
+    justify-content: flex-start;
 }
 
 .slot-circle {
@@ -504,7 +524,7 @@ button {
     height: 12%; 
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: center; /* ЦЕНТРИРОВАНИЕ ПО ВЕРТИКАЛИ */
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
 }
@@ -526,8 +546,8 @@ button {
 .row-gap { width: 16%; }
 
 .char-option { 
-    width: 42px; 
-    height: 42px; 
+    width: 54px; /* УВЕЛИЧЕНО */
+    height: 54px; /* УВЕЛИЧЕНО */
     border-radius: 50%; 
     cursor: pointer; 
     border: 2px solid rgba(255,255,255,0.1);
