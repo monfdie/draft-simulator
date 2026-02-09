@@ -93,8 +93,7 @@
             <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>SELECT</button>
         </div>
 
-        <div class="char-pool" id="char-pool-container">
-            </div>
+        <div class="char-pool" id="char-pool-container"></div>
     </div>
 
     <script>
@@ -266,7 +265,6 @@
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
 
-            // 1. ЛЕСЕНКА (Ladder)
             const ladderDiv = document.createElement('div');
             ladderDiv.className = 'ladder-container';
             ladderDiv.id = 'ladder-container';
@@ -276,14 +274,12 @@
                 const stepDiv = document.createElement('div');
                 stepDiv.className = `ladder-step step-${step.team}`; 
                 stepDiv.id = `step-node-${index}`;
-                // Формат: "1. BAN"
                 stepDiv.innerText = `${index + 1}. ${step.type}`; 
                 ladderDiv.appendChild(stepDiv);
             });
 
             container.appendChild(ladderDiv);
 
-            // 2. Ряды персонажей
             const elements = ['cryo', 'hydro', 'pyro', 'electro', 'anemo', 'geo', 'dendro'];
             elements.forEach(elem => {
                 const rowDiv = document.createElement('div');
@@ -298,7 +294,7 @@
                 leftPart.forEach(char => leftDiv.appendChild(createChar(char)));
 
                 const gapDiv = document.createElement('div');
-                gapDiv.className = 'row-gap'; // Пустота под лесенку
+                gapDiv.className = 'row-gap';
 
                 const rightDiv = document.createElement('div');
                 rightDiv.className = 'row-half right-half';
@@ -348,8 +344,8 @@
             document.getElementById('red-name-display').innerText = state.redName;
 
             const currentIdx = state.stepIndex - 1; 
-
             const schemaLength = (state.draftType === 'classic' ? 10 : 28);
+            
             for(let i=0; i < schemaLength; i++) {
                 const node = document.getElementById(`step-node-${i}`);
                 if (!node) continue;
@@ -360,7 +356,10 @@
                     node.classList.add('step-done');
                 } else if (i === currentIdx && state.gameStarted) {
                     node.classList.add('step-active');
-                    node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // АВТОПРОКРУТКА
+                    setTimeout(() => {
+                        node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 50);
                 }
             }
 
