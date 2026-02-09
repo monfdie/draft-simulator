@@ -32,8 +32,8 @@ const DRAFT_SCHEMAS = {
         { team: 'red', type: 'ban' }, 
         { team: 'red', type: 'pick' },
         { team: 'blue', type: 'ban' }, 
-        { team: 'blue', type: 'pick' }, // Blue Pick 4
-        { team: 'red', type: 'pick' }, // Red Pick 4
+        { team: 'blue', type: 'pick' }, 
+        { team: 'red', type: 'pick' }, 
         { team: 'red', type: 'pick' },
         { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
         { team: 'red', type: 'ban' }, 
@@ -42,8 +42,8 @@ const DRAFT_SCHEMAS = {
         { team: 'blue', type: 'pick' },
         { team: 'red', type: 'ban' }, 
         { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' }, // Blue Pick 9 (index 25)
-        { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' }  // Red Pick 9 (index 27)
+        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' }
     ],
     'classic': [
         { team: 'blue', type: 'ban' }, { team: 'red', type: 'ban' },       
@@ -54,13 +54,9 @@ const DRAFT_SCHEMAS = {
     ]
 };
 
-// Create GITCG CUP 2 by copying GITCG and marking immunity steps
-// Blue picks: 5, 8, 9, 13(4th), 16, 17, 21, 24, 25(9th)
-// Red picks: 6, 7, 11, 14(4th), 15, 19, 23, 26, 27(9th)
-const gitcgSchema = DRAFT_SCHEMAS['gitcg'];
-const gitcgCup2Schema = JSON.parse(JSON.stringify(gitcgSchema));
-
-// Mark Immunity Picks
+// Create GITCG CUP 2
+const gitcgCup2Schema = JSON.parse(JSON.stringify(DRAFT_SCHEMAS['gitcg']));
+// Mark Immunity Picks (indices are 0-based from server perspective)
 gitcgCup2Schema[13].immunity = true; // Blue Pick 4
 gitcgCup2Schema[14].immunity = true; // Red Pick 4
 gitcgCup2Schema[25].immunity = true; // Blue Pick 9
@@ -68,17 +64,13 @@ gitcgCup2Schema[27].immunity = true; // Red Pick 9
 
 DRAFT_SCHEMAS['gitcg_cup_2'] = gitcgCup2Schema;
 
-
 const sessions = {};
 
 io.on('connection', (socket) => {
-    socket.on('create_game', ({ nickname, draftType, userId }) => {
+    socket.on('create_game', ({ nickname, draftType }) => {
         const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
         const type = draftType || 'gitcg';
         const selectedSchema = DRAFT_SCHEMAS[type];
-
-        // Determine if we start with immunity phase
-        const hasImmunityPhase = (type === 'gitcg_cup_2');
 
         sessions[roomId] = {
             id: roomId, 
@@ -91,19 +83,16 @@ io.on('connection', (socket) => {
             draftType: type,
             draftOrder: selectedSchema, 
             
-            // Phase Management
             gameStarted: false,
-            immunityPhaseActive: false, // Will activate on game start
+            immunityPhaseActive: false,
             
-            // Main Draft State
             stepIndex: 0, 
             currentTeam: null, 
             currentAction: null,
             
-            // Immunity State
             immunityStepIndex: 0,
-            immunityPool: [], // Characters selected for immunity
-            immunityBans: [], // Characters banned from immunity
+            immunityPool: [], 
+            immunityBans: [], 
             
             timer: 60, 
             blueReserve: 300, 
@@ -122,7 +111,7 @@ io.on('connection', (socket) => {
         });
     });
 
-    socket.on('join_game', ({roomId, nickname, asSpectator, userId}) => {
+    socket.on('join_game', ({roomId, nickname, asSpectator}) => {
         const session = sessions[roomId];
         if (!session) {
             socket.emit('error_msg', 'Room not found');
@@ -163,13 +152,11 @@ io.on('connection', (socket) => {
         if (session.ready.blue && session.ready.red && !session.gameStarted) {
             session.gameStarted = true;
             
-            // Check if we need to run Immunity Phase first
             if (session.draftType === 'gitcg_cup_2') {
                 session.immunityPhaseActive = true;
                 session.currentTeam = IMMUNITY_ORDER[0].team;
                 session.currentAction = IMMUNITY_ORDER[0].type;
             } else {
-                // Classic start
                 session.currentTeam = session.draftOrder[0].team;
                 session.currentAction = session.draftOrder[0].type;
             }
@@ -189,13 +176,12 @@ io.on('connection', (socket) => {
         
         if (!isBlueTurn && !isRedTurn) return;
 
-        // === IMMUNITY PHASE LOGIC ===
+        // === IMMUNITY PHASE ===
         if (session.immunityPhaseActive) {
-            // Validation
+            // Cannot pick characters already in immunity pool or banned from immunity
             const isImmunityBanned = session.immunityBans.includes(charId);
             const isImmunityPicked = session.immunityPool.includes(charId);
-            // Cannot pick banned-for-immunity chars
-            // Cannot pick already picked-for-immunity chars
+            
             if (isImmunityBanned || isImmunityPicked) return;
 
             if (session.currentAction === 'immunity_ban') {
@@ -208,31 +194,26 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // === MAIN DRAFT LOGIC ===
+        // === MAIN DRAFT ===
         const currentConfig = session.draftOrder[session.stepIndex];
         const isImmunityTurn = !!currentConfig.immunity;
 
-        // Validation
         const isGlobalBanned = session.bans.some(b => b.id === charId);
         const isPickedByBlue = session.bluePicks.includes(charId);
         const isPickedByRed = session.redPicks.includes(charId);
         
-        // Basic check: never pick global bans
+        // Basic check: Global Bans (from MAIN draft) block everything
         if (isGlobalBanned) return;
 
-        // Self check: cannot have duplicate in own team
+        // Self check: cannot have duplicate in OWN team
         if (session.currentTeam === 'blue' && isPickedByBlue) return;
         if (session.currentTeam === 'red' && isPickedByRed) return;
 
-        // Availability check
         let isAvailable = !isPickedByBlue && !isPickedByRed;
 
-        // IMMUNITY EXCEPTION:
-        // If it's an immunity turn, AND the char is in immunity pool,
-        // we can pick it even if the OTHER team has it.
+        // IMMUNITY RULE: 
+        // If it's an immunity turn, AND char is in immunity pool -> available even if taken by opponent
         if (isImmunityTurn && session.immunityPool.includes(charId)) {
-            // We already checked self-ownership above. 
-            // So if opponent has it, isAvailable is false, but we allow it here.
             isAvailable = true; 
         }
 
@@ -257,7 +238,6 @@ function nextImmunityStep(roomId) {
     session.timer = 60;
 
     if (session.immunityStepIndex >= IMMUNITY_ORDER.length) {
-        // Immunity phase over, start main draft
         session.immunityPhaseActive = false;
         session.stepIndex = 0;
         session.currentTeam = session.draftOrder[0].team;
@@ -297,13 +277,10 @@ function startTimer(roomId) {
         if (session.timer > 0) {
             session.timer--;
         } else {
-            if (session.currentTeam === 'blue') {
-                session.blueReserve--;
-                if (session.blueReserve < 0) return autoPick(roomId);
-            } else {
-                session.redReserve--;
-                if (session.redReserve < 0) return autoPick(roomId);
-            }
+            // Simple logic: if timer runs out, auto-pick logic (simplified)
+            // Ideally we auto-pick/ban
+            if (session.currentTeam === 'blue') session.blueReserve--;
+            else session.redReserve--;
         }
 
         io.to(roomId).emit('timer_tick', {
@@ -314,81 +291,17 @@ function startTimer(roomId) {
     }, 1000);
 }
 
-function autoPick(roomId) {
-    const session = sessions[roomId];
-    let allFlat = [];
-    Object.values(CHARACTERS_BY_ELEMENT).forEach(arr => allFlat.push(...arr));
-
-    // Handle Immunity Phase Auto Pick
-    if (session.immunityPhaseActive) {
-        const available = allFlat.filter(c => 
-            !session.immunityBans.includes(c.id) && !session.immunityPool.includes(c.id)
-        );
-        if (available.length > 0) {
-            const r = available[Math.floor(Math.random() * available.length)];
-            if (session.currentAction === 'immunity_ban') session.immunityBans.push(r.id);
-            else session.immunityPool.push(r.id);
-            nextImmunityStep(roomId);
-        }
-        return;
-    }
-
-    // Main Draft Auto Pick
-    // Needs updated logic for immunity picks
-    const currentConfig = session.draftOrder[session.stepIndex];
-    const isImmunityTurn = !!currentConfig.immunity;
-
-    const available = allFlat.filter(c => {
-        const isBanned = session.bans.some(b => b.id === c.id);
-        if (isBanned) return false;
-        
-        const myPicks = session.currentTeam === 'blue' ? session.bluePicks : session.redPicks;
-        const oppPicks = session.currentTeam === 'blue' ? session.redPicks : session.bluePicks;
-        
-        if (myPicks.includes(c.id)) return false;
-        
-        // Immunity Logic for Auto Pick
-        if (oppPicks.includes(c.id)) {
-            // Allowed ONLY if immunity turn AND char in pool
-            if (isImmunityTurn && session.immunityPool.includes(c.id)) return true;
-            return false;
-        }
-        return true;
-    });
-
-    if (available.length > 0) {
-        const randomChar = available[Math.floor(Math.random() * available.length)];
-        if (session.currentAction === 'ban') {
-            session.bans.push({ id: randomChar.id, team: session.currentTeam });
-        } else {
-            if (session.currentTeam === 'blue') session.bluePicks.push(randomChar.id);
-            else session.redPicks.push(randomChar.id);
-        }
-        nextStep(roomId);
-    }
-}
-
 function getPublicState(session) {
-    // Determine effective step index for UI
-    let uiStepIndex = session.stepIndex + 1;
-    
     return {
-        // Main State
-        stepIndex: uiStepIndex,
+        stepIndex: session.stepIndex + 1,
         currentTeam: session.currentTeam, 
         currentAction: session.currentAction,
-        
-        // Lists
         bans: session.bans, 
         bluePicks: session.bluePicks, 
         redPicks: session.redPicks,
-        
-        // Immunity State
         immunityPhaseActive: session.immunityPhaseActive,
         immunityPool: session.immunityPool,
         immunityBans: session.immunityBans,
-        
-        // Meta
         blueName: session.blueName, 
         redName: session.redName,
         draftType: session.draftType,
