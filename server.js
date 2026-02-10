@@ -13,7 +13,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 const CHARACTERS_BY_ELEMENT = require('./characters.json');
 
 // === ИМПОРТ ПРАВИЛ ===
-// Подключаем файл с правилами из папки public
 const { DRAFT_RULES, IMMUNITY_ORDER } = require('./public/draft-rules.js');
 
 const sessions = {};
@@ -23,7 +22,6 @@ io.on('connection', (socket) => {
     // --- СТВОРЕННЯ ГРИ ---
     socket.on('create_game', ({ nickname, draftType, userId }) => {
         const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
-        // Используем новые правила
         const type = draftType || 'gitcg';
         const selectedSchema = DRAFT_RULES[type];
 
@@ -130,6 +128,18 @@ io.on('connection', (socket) => {
             roomId, role, 
             state: getPublicState(session), chars: CHARACTERS_BY_ELEMENT 
         });
+    });
+
+    // --- БРОСОК МОНЕТКИ ---
+    socket.on('coin_toss', (roomId) => {
+        const session = sessions[roomId];
+        if (!session) return;
+        
+        // 50/50 шанс
+        const winner = Math.random() < 0.5 ? 'blue' : 'red';
+        const winnerName = winner === 'blue' ? session.blueName : session.redName;
+        
+        io.to(roomId).emit('coin_toss_result', { winner, winnerName });
     });
 
     socket.on('player_ready', (roomId) => {
