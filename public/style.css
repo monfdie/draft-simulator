@@ -83,68 +83,88 @@ button {
 .blue-side .ban-row, .blue-side .pick-row, .blue-side .pick-row-small { flex-direction: row-reverse; justify-content: flex-start; }
 .red-side .ban-row, .red-side .pick-row, .red-side .pick-row-small { flex-direction: row; justify-content: flex-start; }
 
-/* [ИЗМЕНЕНО] Серый цвет рамок для пиков */
+/* Кружки пиков (светло-серые) */
 .slot-circle { 
     width: 60px; height: 60px; border-radius: 50%; background: rgba(0, 0, 0, 0.3); 
     border: 2px solid #ccc; /* Базовый серый */
     overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; transition: all 0.3s; 
 }
-.blue-side .slot-circle { border-color: #d3d3d3; /* Светло-серый */ }
-.red-side .slot-circle { border-color: #d3d3d3; /* Светло-серый */ }
+.blue-side .slot-circle { border-color: #d3d3d3; }
+.red-side .slot-circle { border-color: #d3d3d3; }
 
+/* Баны всегда красные */
 .slot-ban { border-color: #8b0000 !important; background: rgba(40, 5, 5, 0.4) !important; }
 
-/* [ИЗМЕНЕНО] Желтая подсветка активного слота */
+/* Активный слот - желтая подсветка */
 .active-slot { 
     border-color: #ffd700 !important; /* Желтый */
     background: rgba(255, 215, 0, 0.1) !important; 
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); /* Желтое свечение */
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); 
     transform: scale(1.1); 
+    z-index: 5;
 }
 
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { font-family: 'Cinzel', serif; font-size: 20px; color: rgba(255, 255, 255, 0.2); }
 
-/* [ИЗМЕНЕНО] Убрано свечение у иммунитет-пиков */
 .slot-immunity-pick {
     border-color: #50b36b !important; 
     background: transparent !important; 
     box-shadow: none; 
 }
 
-/* [НОВОЕ] Кнопка SKIP */
-#skip-btn {
-    position: absolute;
-    top: 50%; 
-    transform: translateY(-50%);
-    padding: 10px 20px;
-    font-family: 'Cinzel', serif;
-    font-weight: bold;
-    color: #fff;
-    background: #444;
-    border: 1px solid #777;
-    cursor: pointer;
-    z-index: 100;
-    display: none;
-    transition: all 0.3s;
-}
-#skip-btn:hover {
-    background: #666;
-    border-color: #aaa;
-}
-/* Позиционирование кнопки */
-.skip-pos-right {
-    right: 15%;
-    left: auto;
-}
-.skip-pos-left {
-    left: 15%;
-    right: auto;
+/* --- Controls Area и Кнопки --- */
+.controls-area { 
+    display: flex; justify-content: center; align-items: center; 
+    height: 40px; position: relative; z-index: 20; 
+    margin-top: -20px; margin-bottom: 10px; 
 }
 
-.controls-area { display: flex; justify-content: center; height: 40px; position: relative; z-index: 20; margin-top: -20px; margin-bottom: 10px; }
-.confirm-btn { display: flex; justify-content: center; align-items: center; background: #222; border: 1px solid #555; color: #999; padding: 8px 30px; font-size: 1.1em; font-family: 'Cinzel', serif; cursor: default; transition: all 0.2s; letter-spacing: 2px; }
-.confirm-btn:not(:disabled) { background: #d4af37; border-color: #fff; color: #000; box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); cursor: pointer; transform: scale(1.1); }
+/* Общий стиль для скругленных кнопок */
+.round-btn {
+    font-family: 'Cinzel', serif;
+    font-weight: bold;
+    font-size: 1.1em;
+    padding: 8px 30px;
+    border-radius: 50px; /* Скругление */
+    border: 1px solid #555;
+    background: #222;
+    color: #999;
+    cursor: default;
+    transition: all 0.2s;
+    letter-spacing: 2px;
+}
+
+/* Кнопка Select */
+.confirm-btn:not(:disabled) { 
+    background: #d4af37; border-color: #fff; color: #000; 
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); 
+    cursor: pointer; transform: scale(1.05); 
+}
+
+/* Кнопка Skip */
+#skip-btn {
+    position: absolute;
+    /* Базовые стили */
+    background: #444; color: #fff; border: 1px solid #777;
+    cursor: pointer;
+    display: none; /* Скрыта по умолчанию */
+}
+#skip-btn:hover {
+    background: #666; border-color: #aaa;
+    transform: scale(1.05);
+}
+
+/* Позиции кнопки Skip относительно центра */
+.skip-left {
+    right: 50%; /* Начинается от центра и идет влево */
+    margin-right: 120px; /* Отступ от центральной кнопки */
+}
+.skip-right {
+    left: 50%; /* Начинается от центра и идет вправо */
+    margin-left: 120px; /* Отступ от центральной кнопки */
+}
+
 
 .immunity-top-container {
     position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
@@ -172,12 +192,28 @@ button {
     overflow-y: auto; z-index: 10; scrollbar-width: none; mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
 }
 .ladder-container::-webkit-scrollbar { display: none; }
-.ladder-step { font-family: 'Segoe UI', sans-serif; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 2px; text-transform: uppercase; opacity: 0.3; width: 100%; box-sizing: border-box; transition: 0.3s; }
-.step-blue { text-align: left; color: #4facfe; border-left: 2px solid #4facfe; }
-.step-red { text-align: right; color: #ff6b6b; border-right: 2px solid #ff6b6b; }
-.step-immunity { color: #50b36b; border-color: #50b36b; } 
-.step-active { opacity: 1; background: #222; color: #fff !important; border-color: #fff !important; transform: scale(1.1); }
+
+/* Стили ступеней ладдера по типу действия */
+.ladder-step { 
+    font-family: 'Segoe UI', sans-serif; font-size: 11px; font-weight: bold; 
+    padding: 2px 6px; border-radius: 2px; text-transform: uppercase; 
+    opacity: 0.3; width: 100%; box-sizing: border-box; transition: 0.3s; 
+    text-align: center;
+    border: 1px solid transparent;
+}
+/* Pick = Синий, Ban = Красный */
+.step-pick { color: #4facfe; border-color: rgba(79, 172, 254, 0.3); }
+.step-ban { color: #ff6b6b; border-color: rgba(255, 107, 107, 0.3); }
+.step-immunity { color: #50b36b !important; border-color: rgba(80, 179, 107, 0.3) !important; }
+
+.step-active { opacity: 1; background: #222; transform: scale(1.1); box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+/* Активный пик светится синим */
+.step-active.step-pick { color: #fff; border-color: #4facfe; text-shadow: 0 0 5px #4facfe; }
+/* Активный бан светится красным */
+.step-active.step-ban { color: #fff; border-color: #ff6b6b; text-shadow: 0 0 5px #ff6b6b; }
+
 .step-done { text-decoration: line-through; opacity: 0.15; }
+
 
 .element-row { min-height: 55px; width: 100%; display: flex; align-items: center; position: relative; border-bottom: none; margin-bottom: 2px; }
 .row-cryo, .row-hydro, .row-pyro, .row-electro, .row-anemo, .row-geo, .row-dendro { background: transparent; }
