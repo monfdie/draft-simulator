@@ -9,65 +9,12 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === CHARACTERS DATA (IMPORTED) ===
-// Переконайтеся, що файл characters.json лежить поруч
+// === CHARACTERS DATA ===
 const CHARACTERS_BY_ELEMENT = require('./characters.json');
 
-// === ПОРЯДОК ФАЗИ ІМУНІТЕТУ ===
-const IMMUNITY_ORDER = [
-    { team: 'blue', type: 'immunity_ban' },
-    { team: 'red', type: 'immunity_ban' },
-    { team: 'blue', type: 'immunity_pick' },
-    { team: 'red', type: 'immunity_pick' }
-];
-
-// === СХЕМИ ДРАФТУ ===
-const DRAFT_SCHEMAS = {
-    'gitcg': [
-        { team: 'blue', type: 'ban' }, { team: 'blue', type: 'ban' },
-        { team: 'red', type: 'ban' },  { team: 'red', type: 'ban' },
-        { team: 'blue', type: 'ban' }, 
-        { team: 'blue', type: 'pick' },
-        { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
-        { team: 'red', type: 'ban' }, 
-        { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'ban' }, 
-        { team: 'blue', type: 'pick' }, 
-        { team: 'red', type: 'pick' }, 
-        { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
-        { team: 'red', type: 'ban' }, 
-        { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'ban' }, 
-        { team: 'blue', type: 'pick' },
-        { team: 'red', type: 'ban' }, 
-        { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'pick' }, { team: 'blue', type: 'pick' },
-        { team: 'red', type: 'pick' }, { team: 'red', type: 'pick' }
-    ],
-    'classic': [
-        { team: 'blue', type: 'ban' }, { team: 'red', type: 'ban' },       
-        { team: 'red', type: 'pick' }, { team: 'blue', type: 'ban' },      
-        { team: 'blue', type: 'pick' }, { team: 'red', type: 'ban' },       
-        { team: 'red', type: 'pick' }, { team: 'blue', type: 'pick' },     
-        { team: 'blue', type: 'pick' }, { team: 'red', type: 'pick' }       
-    ]
-};
-
-// Створення схеми GITCG CUP 2 на основі звичайної
-const gitcgCup2Schema = JSON.parse(JSON.stringify(DRAFT_SCHEMAS['gitcg']));
-// Позначаємо імунітетні піки (індекси масиву починаються з 0)
-// Blue Pick 4 -> індекс 13
-gitcgCup2Schema[13].immunity = true; 
-// Red Pick 4 -> індекс 14
-gitcgCup2Schema[14].immunity = true; 
-// Blue Pick 9 -> індекс 25
-gitcgCup2Schema[25].immunity = true; 
-// Red Pick 9 -> індекс 27
-gitcgCup2Schema[27].immunity = true; 
-
-DRAFT_SCHEMAS['gitcg_cup_2'] = gitcgCup2Schema;
+// === ИМПОРТ ПРАВИЛ ===
+// Подключаем файл с правилами из папки public
+const { DRAFT_RULES, IMMUNITY_ORDER } = require('./public/draft-rules.js');
 
 const sessions = {};
 
@@ -76,19 +23,16 @@ io.on('connection', (socket) => {
     // --- СТВОРЕННЯ ГРИ ---
     socket.on('create_game', ({ nickname, draftType, userId }) => {
         const roomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+        // Используем новые правила
         const type = draftType || 'gitcg';
-        const selectedSchema = DRAFT_SCHEMAS[type];
+        const selectedSchema = DRAFT_RULES[type];
 
         sessions[roomId] = {
             id: roomId, 
-            
-            // Зберігаємо userId для реконнекту
             bluePlayer: socket.id, 
             blueUserId: userId, 
-            
             redPlayer: null,
             redUserId: null,
-            
             spectators: [], 
             blueName: nickname || 'Player 1', 
             redName: 'Waiting...',
@@ -96,21 +40,15 @@ io.on('connection', (socket) => {
             draftType: type,
             draftOrder: selectedSchema, 
             
-            // Стан фаз
             gameStarted: false,
             immunityPhaseActive: false,
-            
-            // --- НОВІ ПОЛЯ ДЛЯ ОЧИСТКИ ---
-            lastActive: Date.now(), // Час останньої активності
-            finishedAt: null,       // Час завершення гри
-            // -----------------------------
+            lastActive: Date.now(), 
+            finishedAt: null,       
 
-            // Основний драфт
             stepIndex: 0, 
             currentTeam: null, 
             currentAction: null,
             
-            // Імунітети
             immunityStepIndex: 0,
             immunityPool: [], 
             immunityBans: [], 
@@ -140,7 +78,6 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Оновлюємо активність
         session.lastActive = Date.now();
 
         if (asSpectator || (session.bluePlayer && session.redPlayer)) {
@@ -155,7 +92,7 @@ io.on('connection', (socket) => {
 
         if (!session.redPlayer) {
             session.redPlayer = socket.id;
-            session.redUserId = userId; // Зберігаємо ID другого гравця
+            session.redUserId = userId; 
             session.redName = nickname || 'Player 2';
             socket.join(roomId);
             socket.emit('init_game', { 
@@ -175,25 +112,20 @@ io.on('connection', (socket) => {
         }
 
         let role = '';
-        
-        // Перевіряємо, чи це один з гравців
         if (session.blueUserId === userId) {
-            session.bluePlayer = socket.id; // Оновлюємо сокет
+            session.bluePlayer = socket.id; 
             role = 'blue';
-            session.lastActive = Date.now(); // Оновлюємо активність
+            session.lastActive = Date.now(); 
         } else if (session.redUserId === userId) {
-            session.redPlayer = socket.id; // Оновлюємо сокет
+            session.redPlayer = socket.id; 
             role = 'red';
-            session.lastActive = Date.now(); // Оновлюємо активність
+            session.lastActive = Date.now(); 
         } else {
-            // Якщо ні, кидаємо в глядачі
             role = 'spectator';
             session.spectators.push(socket.id);
         }
 
         socket.join(roomId);
-        
-        // Відправляємо актуальний стан
         socket.emit('init_game', { 
             roomId, role, 
             state: getPublicState(session), chars: CHARACTERS_BY_ELEMENT 
@@ -204,7 +136,6 @@ io.on('connection', (socket) => {
         const session = sessions[roomId];
         if (!session) return;
 
-        // Оновлюємо активність
         session.lastActive = Date.now();
 
         if (socket.id === session.bluePlayer) session.ready.blue = true;
@@ -215,7 +146,6 @@ io.on('connection', (socket) => {
         if (session.ready.blue && session.ready.red && !session.gameStarted) {
             session.gameStarted = true;
             
-            // Якщо режим з імунітетом - починаємо з фази імунітету
             if (session.draftType === 'gitcg_cup_2') {
                 session.immunityPhaseActive = true;
                 session.currentTeam = IMMUNITY_ORDER[0].team;
@@ -235,7 +165,6 @@ io.on('connection', (socket) => {
         const session = sessions[roomId];
         if (!session || !session.redPlayer || !session.gameStarted) return;
 
-        // Оновлюємо активність
         session.lastActive = Date.now();
 
         const isBlueTurn = session.currentTeam === 'blue' && socket.id === session.bluePlayer;
@@ -247,7 +176,6 @@ io.on('connection', (socket) => {
         if (session.immunityPhaseActive) {
             const isImmunityBanned = session.immunityBans.includes(charId);
             const isImmunityPicked = session.immunityPool.includes(charId);
-            // Не можна вибрати вже забаненого або пікнутого в імунітет
             if (isImmunityBanned || isImmunityPicked) return;
 
             if (session.currentAction === 'immunity_ban') {
@@ -268,22 +196,16 @@ io.on('connection', (socket) => {
         const isPickedByRed = session.redPicks.includes(charId);
         const isInImmunityPool = session.immunityPool.includes(charId);
 
-        // Перевірки
         if (isGlobalBanned) return;
         if (session.currentTeam === 'blue' && isPickedByBlue) return;
         if (session.currentTeam === 'red' && isPickedByRed) return;
 
-        // Захист імунітетних персонажів
         if (isInImmunityPool) {
-            // Не можна банити персонажа з пулу імунітету
             if (session.currentAction === 'ban') return;
-            // Не можна пікати персонажа з пулу, якщо це НЕ імунітетний хід
             if (session.currentAction === 'pick' && !isImmunityTurn) return;
         }
 
         let isAvailable = !isPickedByBlue && !isPickedByRed;
-
-        // Дозвіл на дублікат, якщо хід імунітетний і персонаж в пулі
         if (isImmunityTurn && isInImmunityPool) {
             isAvailable = true; 
         }
@@ -309,7 +231,6 @@ function nextImmunityStep(roomId) {
     session.timer = 60;
 
     if (session.immunityStepIndex >= IMMUNITY_ORDER.length) {
-        // Кінець фази імунітету -> перехід до основи
         session.immunityPhaseActive = false;
         session.stepIndex = 0;
         session.currentTeam = session.draftOrder[0].team;
@@ -328,9 +249,7 @@ function nextStep(roomId) {
     session.timer = 60; 
 
     if (session.stepIndex >= session.draftOrder.length) {
-        // Фіксуємо час закінчення гри для очистки
         session.finishedAt = Date.now();
-        
         io.to(roomId).emit('game_over', getPublicState(session));
         clearInterval(session.timerInterval);
         return;
@@ -351,11 +270,9 @@ function startTimer(roomId) {
         if (session.timer > 0) {
             session.timer--;
         } else {
-            // Зменшуємо резерв
             if (session.currentTeam === 'blue') session.blueReserve--;
             else session.redReserve--;
             
-            // Якщо резерв вичерпано - автопік
             if(session.blueReserve < -5 || session.redReserve < -5) {
                autoPick(roomId); 
             }
@@ -374,10 +291,8 @@ function autoPick(roomId) {
     let allFlat = [];
     Object.values(CHARACTERS_BY_ELEMENT).forEach(arr => allFlat.push(...arr));
 
-    // Оновлюємо активність навіть при автопіку
     session.lastActive = Date.now();
 
-    // Автопік для фази імунітету
     if (session.immunityPhaseActive) {
         const available = allFlat.filter(c => !session.immunityBans.includes(c.id) && !session.immunityPool.includes(c.id));
         if (available.length > 0) {
@@ -389,7 +304,6 @@ function autoPick(roomId) {
         return;
     }
 
-    // Автопік для основи
     const currentConfig = session.draftOrder[session.stepIndex];
     const isImmunityTurn = !!currentConfig.immunity;
 
@@ -404,15 +318,12 @@ function autoPick(roomId) {
         
         const isInImmunityPool = session.immunityPool.includes(c.id);
 
-        // Якщо перс в імун-пулі, його не можна банити або пікати в невідповідний час
         if (isInImmunityPool) {
             if (session.currentAction === 'ban') return false;
             if (session.currentAction === 'pick' && !isImmunityTurn) return false;
         }
 
-        // Якщо перс у ворога
         if (oppPicks.includes(c.id)) {
-            // Можна тільки якщо це імунітет
             if (isImmunityTurn && isInImmunityPool) return true;
             return false;
         }
@@ -450,9 +361,8 @@ function getPublicState(session) {
     };
 }
 
-// === ОЧИСТКА ПАМЯТИ (GARBAGE COLLECTOR) ===
-const CLEANUP_INTERVAL = 60 * 1000; // Перевіряти кожну хвилину
-const SESSION_TIMEOUT = 60 * 60 * 1000; // 1 година таймауту
+const CLEANUP_INTERVAL = 60 * 1000; 
+const SESSION_TIMEOUT = 60 * 60 * 1000; 
 
 setInterval(() => {
     const now = Date.now();
@@ -461,31 +371,21 @@ setInterval(() => {
 
     roomIds.forEach(roomId => {
         const session = sessions[roomId];
-        
-        // Перевіряємо, чи є живі підключення до кімнати
-        // io.sockets.adapter.rooms повертає Map, де ключ - roomId, значення - Set сокетів
         const room = io.sockets.adapter.rooms.get(roomId);
         const isEmpty = !room || room.size === 0;
 
-        // Умова 1: Гра закінчилася більше 1 години тому
         const isOldFinished = session.finishedAt && (now - session.finishedAt > SESSION_TIMEOUT);
-
-        // Умова 2: В кімнаті нікого немає І вона не активна більше 1 години
-        // (додаємо перевірку часу, щоб не видалити кімнату, створену 1 секунду тому, куди творець ще не встиг зайти)
         const isAbandoned = isEmpty && (now - session.lastActive > SESSION_TIMEOUT);
 
         if (isOldFinished || isAbandoned) {
-            // Зупиняємо таймер драфту, якщо він йшов
             if (session.timerInterval) clearInterval(session.timerInterval);
-            
-            // Видаляємо сесію з пам'яті
             delete sessions[roomId];
             deletedCount++;
         }
     });
 
     if (deletedCount > 0) {
-        console.log(`[Cleanup] Removed ${deletedCount} old sessions. Active sessions: ${Object.keys(sessions).length}`);
+        console.log(`[Cleanup] Removed ${deletedCount} old sessions.`);
     }
 }, CLEANUP_INTERVAL);
 
