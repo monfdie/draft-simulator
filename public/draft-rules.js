@@ -1,29 +1,6 @@
 // public/draft-rules.js
 
 const DRAFT_RULES = {
-    // Новый режим Heavy Ban (по твоему запросу)
-    // Blue: 6 Банов, 3 Пика
-    // Red: 5 Банов, 3 Пика
-    'heavy_ban': [
-        { team: 'blue', type: 'ban' },
-        { team: 'red', type: 'ban' },
-        { team: 'blue', type: 'ban' },
-        { team: 'blue', type: 'ban' },
-        { team: 'red', type: 'ban' },
-        { team: 'red', type: 'ban' },
-        { team: 'blue', type: 'ban' },
-        { team: 'blue', type: 'pick' },
-        { team: 'red', type: 'ban' },
-        { team: 'red', type: 'ban' },
-        { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'ban' },
-        { team: 'blue', type: 'ban' },
-        { team: 'blue', type: 'pick' },
-        { team: 'red', type: 'ban' },
-        { team: 'red', type: 'pick' },
-        { team: 'red', type: 'pick' },
-        { team: 'blue', type: 'pick' }
-    ],
     'gitcg': [
         { team: 'blue', type: 'ban' }, { team: 'blue', type: 'ban' },
         { team: 'red', type: 'ban' },  { team: 'red', type: 'ban' },
@@ -52,10 +29,32 @@ const DRAFT_RULES = {
         { team: 'blue', type: 'pick' }, { team: 'red', type: 'ban' },       
         { team: 'red', type: 'pick' }, { team: 'blue', type: 'pick' },     
         { team: 'blue', type: 'pick' }, { team: 'red', type: 'pick' }       
+    ],
+    // Generals 2 (бывший Heavy Ban)
+    // 6 Банов, 3 Пика
+    'generals_2': [
+        { team: 'blue', type: 'ban' },
+        { team: 'red', type: 'ban' },
+        { team: 'blue', type: 'ban' },
+        { team: 'blue', type: 'ban' },
+        { team: 'red', type: 'ban' },
+        { team: 'red', type: 'ban' },
+        { team: 'blue', type: 'ban' },
+        { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'ban' },
+        { team: 'red', type: 'ban' },
+        { team: 'red', type: 'pick' },
+        { team: 'blue', type: 'ban' },
+        { team: 'blue', type: 'ban' },
+        { team: 'blue', type: 'pick' },
+        { team: 'red', type: 'ban' },
+        { team: 'red', type: 'pick' },
+        { team: 'red', type: 'pick' },
+        { team: 'blue', type: 'pick' }
     ]
 };
 
-// Генерация схемы GITCG CUP 2 (с иммунитетом)
+// Генерация схемы GITCG CUP 2
 const gitcg2 = JSON.parse(JSON.stringify(DRAFT_RULES['gitcg']));
 gitcg2[13].immunity = true; 
 gitcg2[14].immunity = true;
@@ -70,7 +69,6 @@ const IMMUNITY_ORDER = [
     { team: 'red', type: 'immunity_pick' }
 ];
 
-// Экспорт для Node.js и браузера
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { DRAFT_RULES, IMMUNITY_ORDER };
 } else {
