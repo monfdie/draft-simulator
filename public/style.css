@@ -77,18 +77,35 @@ button {
 .ready-on { border-color: #28a745; }
 .ready-on .switch-circle { left: 15px; background: #28a745; box-shadow: 0 0 5px #28a745; }
 
-.ban-row, .pick-row, .pick-row-small { display: flex; gap: 15px; margin-bottom: 10px; }
-.pick-row-small { gap: 15px; }
-.blue-side .ban-row, .blue-side .pick-row, .blue-side .pick-row-small { flex-direction: row-reverse; justify-content: flex-start; }
-.red-side .ban-row, .red-side .pick-row, .red-side .pick-row-small { flex-direction: row; justify-content: flex-start; }
+/* === НОВЫЙ ДИНАМИЧЕСКИЙ РЯД (Dynamic Row) === */
+.dynamic-row {
+    display: flex;
+    flex-wrap: wrap;       
+    gap: 12px;             
+    margin-bottom: 15px;
+    width: 100%;
+}
 
-.slot-circle { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 0, 0, 0.3); border: 2px solid #333; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; transition: all 0.3s; }
-.blue-side .pick-row .slot-circle, .blue-side .pick-row-small .slot-circle { border-color: #1e3c72; }
-.red-side .pick-row .slot-circle, .red-side .pick-row-small .slot-circle { border-color: #631e1e; }
+/* Выравнивание для Синей стороны (от центра влево) */
+.blue-side .dynamic-row {
+    flex-direction: row-reverse; 
+    justify-content: flex-start; 
+}
+
+/* Выравнивание для Красной стороны (от центра вправо) */
+.red-side .dynamic-row {
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.slot-circle { width: 60px; height: 60px; border-radius: 50%; background: rgba(0, 0, 0, 0.3); border: 2px solid #333; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; transition: all 0.3s; }
+.blue-side .dynamic-row .slot-circle { border-color: #1e3c72; }
+.red-side .dynamic-row .slot-circle { border-color: #631e1e; }
+
 .slot-ban { border-color: #8b0000 !important; background: rgba(40, 5, 5, 0.4) !important; }
 .active-slot { border-color: #fff !important; background: rgba(255, 255, 255, 0.1) !important; box-shadow: 0 0 15px rgba(255, 255, 255, 0.2); transform: scale(1.1); }
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
-.step-number { font-family: 'Cinzel', serif; font-size: 24px; color: rgba(255, 255, 255, 0.2); }
+.step-number { font-family: 'Cinzel', serif; font-size: 20px; color: rgba(255, 255, 255, 0.2); }
 
 /* === IMMUNITY SLOT HIGHLIGHT (MAIN DRAFT) === */
 .slot-immunity-pick {
@@ -111,7 +128,7 @@ button {
 .im-icon { width: 40px; height: 40px; border-radius: 50%; overflow: hidden; background: #000; }
 .im-ban { border: 2px solid #ff4444; position: relative; }
 .im-ban::after { content: ''; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255, 0, 0, 0.3); }
-.im-pick { border: 2px solid #4facfe; } /* Blue for top immunity picks */
+.im-pick { border: 2px solid #4facfe; } 
 .im-empty { background: rgba(255,255,255,0.05); } 
 .im-icon img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -132,7 +149,6 @@ button {
 .step-blue { text-align: left; color: #4facfe; border-left: 2px solid #4facfe; }
 .step-red { text-align: right; color: #ff6b6b; border-right: 2px solid #ff6b6b; }
 
-/* === ИЗМЕНЕНИЕ: ЗЕЛЕНЫЙ ЦВЕТ ДЛЯ ШАГОВ В СПИСКЕ === */
 .step-immunity { 
     color: #50b36b; 
     border-color: #50b36b; 
