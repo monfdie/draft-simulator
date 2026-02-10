@@ -51,7 +51,6 @@ io.on('connection', (socket) => {
             immunityPool: [], 
             immunityBans: [], 
             
-            // [ИЗМЕНЕНО] Таймеры: 45 секунд на ход, 180 секунд (3 минуты) резерв
             timer: 45, 
             blueReserve: 180, 
             redReserve: 180, 
@@ -171,10 +170,9 @@ io.on('connection', (socket) => {
         }
     });
 
-    // [НОВОЕ] Обработчик пропуска хода (SKIP TURN)
+    // Обработчик пропуска хода (SKIP TURN)
     socket.on('skip_action', (roomId) => {
         const session = sessions[roomId];
-        // Проверяем, что сейчас фаза иммунитета и ход правильного игрока
         if (!session || !session.immunityPhaseActive) return;
 
         const isBlueTurn = session.currentTeam === 'blue' && socket.id === session.bluePlayer;
@@ -184,7 +182,6 @@ io.on('connection', (socket) => {
 
         session.lastActive = Date.now();
 
-        // Вместо ID персонажа пушим строку 'skipped'
         if (session.currentAction === 'immunity_ban') {
             session.immunityBans.push('skipped');
         } else if (session.currentAction === 'immunity_pick') {
@@ -227,7 +224,6 @@ io.on('connection', (socket) => {
         const isGlobalBanned = session.bans.some(b => b.id === charId);
         const isPickedByBlue = session.bluePicks.includes(charId);
         const isPickedByRed = session.redPicks.includes(charId);
-        // Фильтруем 'skipped' из пула иммунитета при проверке
         const isInImmunityPool = session.immunityPool.filter(id => id !== 'skipped').includes(charId);
 
         if (isGlobalBanned) return;
@@ -262,7 +258,7 @@ io.on('connection', (socket) => {
 function nextImmunityStep(roomId) {
     const session = sessions[roomId];
     session.immunityStepIndex++;
-    session.timer = 45; // [ИЗМЕНЕНО] Сброс таймера на 45
+    session.timer = 45; 
 
     if (session.immunityStepIndex >= IMMUNITY_ORDER.length) {
         session.immunityPhaseActive = false;
@@ -280,7 +276,7 @@ function nextImmunityStep(roomId) {
 function nextStep(roomId) {
     const session = sessions[roomId];
     session.stepIndex++;
-    session.timer = 45; // [ИЗМЕНЕНО] Сброс таймера на 45
+    session.timer = 45; 
 
     if (session.stepIndex >= session.draftOrder.length) {
         session.finishedAt = Date.now();
@@ -296,6 +292,7 @@ function nextStep(roomId) {
     io.to(roomId).emit('update_state', getPublicState(session));
 }
 
+// [ИЗМЕНЕНО] Логика таймера: остановка на 00:00 и автопик
 function startTimer(roomId) {
     const session = sessions[roomId];
     if (session.timerInterval) clearInterval(session.timerInterval);
@@ -304,11 +301,18 @@ function startTimer(roomId) {
         if (session.timer > 0) {
             session.timer--;
         } else {
-            if (session.currentTeam === 'blue') session.blueReserve--;
-            else session.redReserve--;
-            
-            if(session.blueReserve < -5 || session.redReserve < -5) {
-               autoPick(roomId); 
+            if (session.currentTeam === 'blue') {
+                session.blueReserve--;
+                if (session.blueReserve <= 0) {
+                    session.blueReserve = 0; // Фиксируем на 0
+                    autoPick(roomId);
+                }
+            } else {
+                session.redReserve--;
+                if (session.redReserve <= 0) {
+                    session.redReserve = 0; // Фиксируем на 0
+                    autoPick(roomId);
+                }
             }
         }
 
@@ -328,17 +332,13 @@ function autoPick(roomId) {
     session.lastActive = Date.now();
 
     if (session.immunityPhaseActive) {
-        // Учитываем 'skipped'
         const available = allFlat.filter(c => !session.immunityBans.includes(c.id) && !session.immunityPool.includes(c.id));
-        
-        // Шанс пропустить ход автоматически (или выбрать случайного, тут оставим случайного для автопика)
         if (available.length > 0) {
             const r = available[Math.floor(Math.random() * available.length)];
             if (session.currentAction === 'immunity_ban') session.immunityBans.push(r.id);
             else session.immunityPool.push(r.id);
             nextImmunityStep(roomId);
         } else {
-            // Если совсем никого нет (в теории невозможно), пропускаем
             if (session.currentAction === 'immunity_ban') session.immunityBans.push('skipped');
             else session.immunityPool.push('skipped');
             nextImmunityStep(roomId);
@@ -358,7 +358,7 @@ function autoPick(roomId) {
         
         if (myPicks.includes(c.id)) return false;
         
-        const isInImmunityPool = session.immunityPool.includes(c.id); // 'skipped' не повлияет
+        const isInImmunityPool = session.immunityPool.includes(c.id);
 
         if (isInImmunityPool) {
             if (session.currentAction === 'ban') return false;
