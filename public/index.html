@@ -50,8 +50,6 @@
         </div>
 
         <div class="draft-area">
-            <button id="skip-btn" onclick="skipTurn()">SKIP TURN</button>
-
             <div id="immunity-top-display" class="immunity-top-container" style="display: none;">
                 <div class="im-label">IMMUNE</div>
                 <div class="im-row" id="immunity-icons-row"></div>
@@ -90,7 +88,8 @@
         </div>
 
         <div class="controls-area">
-            <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>SELECT</button>
+            <button id="skip-btn" class="round-btn" onclick="skipTurn()">SKIP</button>
+            <button id="confirm-btn" class="confirm-btn round-btn" onclick="confirmSelection()" disabled>SELECT</button>
         </div>
 
         <div class="char-pool" id="char-pool-container"></div>
@@ -159,7 +158,6 @@
         socket.on('timer_tick', (data) => {
             const t = typeof data === 'object' ? data.main : data;
             const b = document.getElementById('blue-timer'), r = document.getElementById('red-timer');
-            // Обновляем таймеры. Стандартно показываем 45 (или текущее)
             if(activeTeam==='blue') { b.innerText=t; r.innerText="45"; b.style.color=t<10?'#ff5555':'#4facfe'; }
             else { r.innerText=t; b.innerText="45"; r.style.color=t<10?'#ff5555':'#ff6b6b'; }
             if(typeof data === 'object') {
@@ -193,7 +191,10 @@
             
             schema.forEach((step, i) => {
                 const d = document.createElement('div');
-                d.className = `ladder-step step-${step.team}`;
+                // Логика цветов: step-pick (синий) или step-ban (красный), независимо от команды
+                const colorClass = (step.type === 'pick' || step.type === 'immunity_pick') ? 'step-pick' : 'step-ban';
+                d.className = `ladder-step ${colorClass}`;
+                
                 if(step.immunity) d.classList.add('step-immunity');
                 d.id = `step-node-${i}`; d.innerText = `${i+1}. ${step.type}`;
                 ladder.appendChild(d);
@@ -275,17 +276,21 @@
 
             updateImmunityTop(state);
 
-            // Кнопка SKIP
+            // Кнопка SKIP - Логика позиционирования
             const skipBtn = document.getElementById('skip-btn');
             const isMyTurn = (myRole === state.currentTeam);
             
+            // Сбрасываем классы перед установкой новых
+            skipBtn.classList.remove('skip-left', 'skip-right');
+            
             if (state.immunityPhaseActive && isMyTurn) {
                 skipBtn.style.display = 'block';
-                skipBtn.className = ''; 
+                // Если ходит Blue (Player 1) - кнопка слева
                 if (state.currentTeam === 'blue') {
-                    skipBtn.classList.add('skip-pos-right');
+                    skipBtn.classList.add('skip-left');
                 } else {
-                    skipBtn.classList.add('skip-pos-left');
+                // Если ходит Red (Player 2) - кнопка справа
+                    skipBtn.classList.add('skip-right');
                 }
             } else {
                 skipBtn.style.display = 'none';
@@ -362,9 +367,10 @@
                     if (isBan) slot.classList.add('slot-ban');
                     if (step.immunity) slot.classList.add('slot-immunity-pick');
                     
-                    // Логика подсветки текущего активного слота
+                    // [ИСПРАВЛЕНО] Логика подсветки
+                    // state.stepIndex приходит с сервера уже как (индекс + 1), поэтому убрали +1 здесь
                     if (!state.immunityPhaseActive && state.gameStarted && 
-                        step.num === (state.stepIndex + 1)) {
+                        step.num === state.stepIndex) {
                         slot.classList.add('active-slot');
                     }
 
