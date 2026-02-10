@@ -38,12 +38,25 @@
         </div>
     </div>
 
+    <div id="coin-overlay" onclick="closeCoinOverlay()">
+        <div class="coin-card">
+            <div class="coin-title">COIN TOSS RESULT</div>
+            <div id="coin-winner-text" class="coin-winner">BLUE WINS</div>
+            <div class="coin-subtext">SIDE SELECTION</div>
+        </div>
+    </div>
+
     <div id="game-screen" style="display:none;">
        <div class="header">
             <div id="room-container">
                 <div id="room-display" onclick="copyRoomCode()" title="Click to copy room code">CODE: ----</div>
                 <span id="copy-toast">Code Copied!</span>
             </div>
+            
+            <button class="btn-coin" onclick="requestCoinFlip()" title="Flip Coin for Side Selection">
+                🪙 FLIP
+            </button>
+
             <div class="reserve-timer blue-res"><span id="blue-res">5:00</span></div>
             <div id="status">Waiting...</div>
             <div class="reserve-timer red-res"><span id="red-res">5:00</span></div>
@@ -154,6 +167,38 @@
             sessionStorage.removeItem('draft_room_id'); 
         });
         
+        // === COIN LOGIC ===
+        function requestCoinFlip() {
+            if(currentRoom) socket.emit('coin_toss', currentRoom);
+        }
+
+        socket.on('coin_toss_result', (data) => {
+            const overlay = document.getElementById('coin-overlay');
+            const text = document.getElementById('coin-winner-text');
+            const card = document.querySelector('.coin-card');
+            
+            text.innerText = `${data.winner.toUpperCase()} WINS`;
+            
+            // Цвета для победителя
+            if(data.winner === 'blue') {
+                text.style.color = '#4facfe';
+                card.style.borderColor = '#4facfe';
+            } else {
+                text.style.color = '#ff6b6b';
+                card.style.borderColor = '#ff6b6b';
+            }
+            
+            overlay.classList.add('show');
+            // Авто-скрытие через 3 секунды
+            setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 3000);
+        });
+
+        function closeCoinOverlay() {
+            document.getElementById('coin-overlay').classList.remove('show');
+        }
+
         socket.on('timer_tick', (data) => {
             const t = typeof data === 'object' ? data.main : data;
             const b = document.getElementById('blue-timer'), r = document.getElementById('red-timer');
@@ -349,10 +394,8 @@
             
             // Логика распределения пиков по рядам
             if (currentDraftType === 'generals_2') {
-                // Generals 2: Все пики (3 шт) в верхний ряд
                 fill('blue-picks-1', state.bluePicks, bluePickSteps, false);
-                fill('blue-picks-2', [], [], false); // Нижний ряд пустой
-                
+                fill('blue-picks-2', [], [], false); 
                 fill('red-picks-1', state.redPicks, redPickSteps, false);
                 fill('red-picks-2', [], [], false);
             } else if (currentDraftType === 'classic') {
@@ -361,10 +404,8 @@
                 fill('red-picks-1', state.redPicks, redPickSteps, false);
                 fill('red-picks-2', [], [], false);
             } else {
-                // GITCG (9 пиков): Сплит 5 / 4
                 fill('blue-picks-1', state.bluePicks.slice(0, 5), bluePickSteps.slice(0, 5), false);
                 fill('blue-picks-2', state.bluePicks.slice(5, 9), bluePickSteps.slice(5, 9), false);
-                
                 fill('red-picks-1', state.redPicks.slice(0, 5), redPickSteps.slice(0, 5), false);
                 fill('red-picks-2', state.redPicks.slice(5, 9), redPickSteps.slice(5, 9), false);
             }
