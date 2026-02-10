@@ -18,10 +18,10 @@
             <div class="input-group">
                 <label>DRAFT MODE</label>
                 <select id="draft-type-select">
-                    <option value="heavy_ban">Heavy Ban (New)</option>
                     <option value="gitcg">GITCG CUP </option>
                     <option value="gitcg_cup_2">GITCG CUP 2 (Immunity)</option>
                     <option value="classic">Classic (2 Bans / 3 Picks)</option>
+                    <option value="generals_2">Generals 2 (New)</option>
                 </select>
             </div>
             <button class="btn-primary" onclick="createGame()">Create Game </button>
@@ -63,8 +63,9 @@
                         <div class="switch-circle"></div>
                     </div>
                 </div>
-                <div class="dynamic-row" id="blue-bans"></div>
-                <div class="dynamic-row pick-area" id="blue-picks"></div>
+                <div class="ban-row" id="blue-bans"></div>
+                <div class="pick-row" id="blue-picks-1"></div>
+                <div class="pick-row-small" id="blue-picks-2"></div>
             </div>
 
             <div class="center-axis">
@@ -80,8 +81,9 @@
                     <h2 id="red-name-display">PLAYER 2</h2>
                     <div id="red-timer" class="turn-timer">60</div>
                 </div>
-                <div class="dynamic-row" id="red-bans"></div>
-                <div class="dynamic-row pick-area" id="red-picks"></div>
+                <div class="ban-row" id="red-bans"></div>
+                <div class="pick-row" id="red-picks-1"></div>
+                <div class="pick-row-small" id="red-picks-2"></div>
             </div>
         </div>
 
@@ -95,13 +97,10 @@
     <script>
         const socket = io({ transports: ['websocket'] });
 
-        // RECONNECT LOGIC
         socket.on('connect', () => {
             const savedRoom = sessionStorage.getItem('draft_room_id');
             const myId = sessionStorage.getItem('draft_user_id');
-            
             if (savedRoom && myId) {
-                console.log("Attempting reconnect to room:", savedRoom);
                 socket.emit('rejoin_game', { roomId: savedRoom, userId: myId });
             }
         });
@@ -140,9 +139,7 @@
         socket.on('init_game', (data) => {
             myRole = data.role; currentRoom = data.roomId; charsData = data.chars;
             currentDraftType = data.state.draftType || 'gitcg';
-            
             sessionStorage.setItem('draft_room_id', currentRoom);
-
             document.getElementById('room-display').innerText = `CODE: ${currentRoom}` + (myRole === 'spectator' ? " (SPEC)" : "");
             document.getElementById('lobby-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
@@ -170,12 +167,10 @@
 
         function formatTime(s) { const m=Math.floor(s/60), sec=s%60; return `${m}:${sec<10?'0':''}${sec}`; }
         function toggleReady(r) { if(myRole===r) socket.emit('player_ready', currentRoom); }
-        
         function copyRoomCode() { 
             if (!currentRoom) return;
             navigator.clipboard.writeText(currentRoom).then(() => {
                 const toast = document.getElementById('copy-toast');
-                toast.innerText = "Code Copied!"; 
                 toast.classList.add('show');
                 setTimeout(() => { toast.classList.remove('show'); }, 2000);
             });
@@ -184,9 +179,7 @@
         function renderRows() {
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
-            
             const ladder = document.createElement('div'); ladder.className = 'ladder-container';
-            // Используем правила из DRAFT_RULES
             const schema = DRAFT_RULES[currentDraftType];
             
             schema.forEach((step, i) => {
@@ -237,14 +230,9 @@
             topDisp.style.display = 'flex';
             const row = document.getElementById('immunity-icons-row');
             row.innerHTML = '';
-
             const bans = state.immunityBans || [];
             const picks = state.immunityPool || [];
-            const slots = [
-                { id: bans[0], type: 'ban' }, { id: picks[0], type: 'pick' },
-                { id: picks[1], type: 'pick' }, { id: bans[1], type: 'ban' }
-            ];
-
+            const slots = [ { id: bans[0], type: 'ban' }, { id: picks[0], type: 'pick' }, { id: picks[1], type: 'pick' }, { id: bans[1], type: 'ban' } ];
             slots.forEach(slot => {
                 const div = document.createElement('div');
                 div.className = `im-icon im-${slot.type}`;
@@ -252,9 +240,7 @@
                     let all = []; Object.values(charsData).forEach(a => all.push(...a));
                     const char = all.find(c => c.id === slot.id);
                     if(char) div.innerHTML = `<img src="${char.img}">`;
-                } else {
-                    div.classList.add('im-empty');
-                }
+                } else div.classList.add('im-empty');
                 row.appendChild(div);
             });
         }
@@ -296,69 +282,49 @@
 
             renderSlots(state);
 
-            document.querySelectorAll('.char-option').forEach(el => {
-                el.classList.remove('disabled', 'immunity-highlight');
-            });
-
+            document.querySelectorAll('.char-option').forEach(el => el.classList.remove('disabled', 'immunity-highlight'));
             state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
             [...state.bluePicks, ...state.redPicks].forEach(id => document.getElementById(`char-${id}`)?.classList.add('disabled'));
-
             if(state.immunityPhaseActive) {
-                [...state.immunityBans, ...state.immunityPool].forEach(id => 
-                    document.getElementById(`char-${id}`)?.classList.add('disabled'));
+                [...state.immunityBans, ...state.immunityPool].forEach(id => document.getElementById(`char-${id}`)?.classList.add('disabled'));
             } else {
                 const step = currentSchema[idx];
                 const isImmunityTurn = step && step.immunity;
-
                 state.immunityPool.forEach(id => {
                     const el = document.getElementById(`char-${id}`);
                     if(!el) return;
-
-                    if(state.currentAction === 'ban') {
-                        el.classList.add('disabled');
-                    } else if (state.currentAction === 'pick') {
+                    if(state.currentAction === 'ban') el.classList.add('disabled');
+                    else if (state.currentAction === 'pick') {
                         if(isImmunityTurn) {
                             const myPicks = activeTeam === 'blue' ? state.bluePicks : state.redPicks;
-                            if(!myPicks.includes(id)) {
-                                el.classList.remove('disabled');
-                                el.classList.add('immunity-highlight'); 
-                            }
-                        } else {
-                            el.classList.add('disabled');
-                        }
+                            if(!myPicks.includes(id)) { el.classList.remove('disabled'); el.classList.add('immunity-highlight'); }
+                        } else el.classList.add('disabled');
                     }
                 });
             }
-
             if(state.gameStarted && myRole !== 'spectator' && myRole !== state.currentTeam) {
                 document.querySelectorAll('.char-option').forEach(el => el.classList.add('disabled'));
             }
         }
 
-        // --- НОВАЯ УНИВЕРСАЛЬНАЯ ФУНКЦИЯ RENDERSLOTS ---
         function getStepsFor(schema, team, type) {
             if (!schema) return [];
             return schema
                 .map((step, index) => ({ ...step, globalIndex: index + 1 }))
                 .filter(step => step.team === team && step.type === type)
-                .map(step => ({ 
-                    num: step.globalIndex, 
-                    immunity: step.immunity 
-                }));
+                .map(step => ({ num: step.globalIndex, immunity: step.immunity }));
         }
 
         function renderSlots(state) {
             const currentSchema = DRAFT_RULES[currentDraftType];
-            
             const blueBanSteps = getStepsFor(currentSchema, 'blue', 'ban');
             const redBanSteps = getStepsFor(currentSchema, 'red', 'ban');
             const bluePickSteps = getStepsFor(currentSchema, 'blue', 'pick');
             const redPickSteps = getStepsFor(currentSchema, 'red', 'pick');
 
-            const fillContainer = (containerId, items, stepData, isBan) => {
+            const fill = (containerId, items, stepData, isBan) => {
                 const div = document.getElementById(containerId);
                 div.innerHTML = ''; 
-                
                 stepData.forEach((step, i) => {
                     const slot = document.createElement('div');
                     slot.className = 'slot-circle';
@@ -369,21 +335,39 @@
                     if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
 
                     if (charId) {
-                        let allFlat = [];
-                        Object.values(charsData).forEach(arr => allFlat.push(...arr));
+                        let allFlat = []; Object.values(charsData).forEach(arr => allFlat.push(...arr));
                         const char = allFlat.find(c => c.id === charId);
                         if (char) slot.innerHTML = `<img src="${char.img}">`;
-                    } else {
-                        slot.innerHTML = `<span class="step-number">${step.num}</span>`;
-                    }
+                    } else slot.innerHTML = `<span class="step-number">${step.num}</span>`;
                     div.appendChild(slot);
                 });
             };
 
-            fillContainer('blue-bans', state.bans.filter(b => b.team === 'blue'), blueBanSteps, true);
-            fillContainer('red-bans', state.bans.filter(b => b.team === 'red'), redBanSteps, true);
-            fillContainer('blue-picks', state.bluePicks, bluePickSteps, false);
-            fillContainer('red-picks', state.redPicks, redPickSteps, false);
+            // Заполняем баны
+            fill('blue-bans', state.bans.filter(b => b.team === 'blue'), blueBanSteps, true);
+            fill('red-bans', state.bans.filter(b => b.team === 'red'), redBanSteps, true);
+            
+            // Логика распределения пиков по рядам
+            if (currentDraftType === 'generals_2') {
+                // Generals 2: Все пики (3 шт) в верхний ряд
+                fill('blue-picks-1', state.bluePicks, bluePickSteps, false);
+                fill('blue-picks-2', [], [], false); // Нижний ряд пустой
+                
+                fill('red-picks-1', state.redPicks, redPickSteps, false);
+                fill('red-picks-2', [], [], false);
+            } else if (currentDraftType === 'classic') {
+                fill('blue-picks-1', state.bluePicks, bluePickSteps, false);
+                fill('blue-picks-2', [], [], false);
+                fill('red-picks-1', state.redPicks, redPickSteps, false);
+                fill('red-picks-2', [], [], false);
+            } else {
+                // GITCG (9 пиков): Сплит 5 / 4
+                fill('blue-picks-1', state.bluePicks.slice(0, 5), bluePickSteps.slice(0, 5), false);
+                fill('blue-picks-2', state.bluePicks.slice(5, 9), bluePickSteps.slice(5, 9), false);
+                
+                fill('red-picks-1', state.redPicks.slice(0, 5), redPickSteps.slice(0, 5), false);
+                fill('red-picks-2', state.redPicks.slice(5, 9), redPickSteps.slice(5, 9), false);
+            }
         }
     </script>
 </body>
