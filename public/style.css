@@ -77,37 +77,23 @@ button {
 .ready-on { border-color: #28a745; }
 .ready-on .switch-circle { left: 15px; background: #28a745; box-shadow: 0 0 5px #28a745; }
 
-/* === НОВЫЙ ДИНАМИЧЕСКИЙ РЯД (Dynamic Row) === */
-.dynamic-row {
-    display: flex;
-    flex-wrap: wrap;       
-    gap: 12px;             
-    margin-bottom: 15px;
-    width: 100%;
-}
-
-/* Выравнивание для Синей стороны (от центра влево) */
-.blue-side .dynamic-row {
-    flex-direction: row-reverse; 
-    justify-content: flex-start; 
-}
-
-/* Выравнивание для Красной стороны (от центра вправо) */
-.red-side .dynamic-row {
-    flex-direction: row;
-    justify-content: flex-start;
-}
+/* === ВОЗВРАЩАЕМ СТАРЫЕ РЯДЫ (Fixed Layout) === */
+.ban-row, .pick-row, .pick-row-small { display: flex; gap: 15px; margin-bottom: 10px; }
+.pick-row-small { gap: 15px; }
+/* Blue side: reverse order (right to left) */
+.blue-side .ban-row, .blue-side .pick-row, .blue-side .pick-row-small { flex-direction: row-reverse; justify-content: flex-start; }
+/* Red side: normal order (left to right) */
+.red-side .ban-row, .red-side .pick-row, .red-side .pick-row-small { flex-direction: row; justify-content: flex-start; }
 
 .slot-circle { width: 60px; height: 60px; border-radius: 50%; background: rgba(0, 0, 0, 0.3); border: 2px solid #333; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; transition: all 0.3s; }
-.blue-side .dynamic-row .slot-circle { border-color: #1e3c72; }
-.red-side .dynamic-row .slot-circle { border-color: #631e1e; }
+.blue-side .slot-circle { border-color: #1e3c72; }
+.red-side .slot-circle { border-color: #631e1e; }
 
 .slot-ban { border-color: #8b0000 !important; background: rgba(40, 5, 5, 0.4) !important; }
 .active-slot { border-color: #fff !important; background: rgba(255, 255, 255, 0.1) !important; box-shadow: 0 0 15px rgba(255, 255, 255, 0.2); transform: scale(1.1); }
 .slot-circle img { width: 100%; height: 100%; object-fit: cover; }
 .step-number { font-family: 'Cinzel', serif; font-size: 20px; color: rgba(255, 255, 255, 0.2); }
 
-/* === IMMUNITY SLOT HIGHLIGHT (MAIN DRAFT) === */
 .slot-immunity-pick {
     border-color: #50b36b !important; 
     background: transparent !important; 
@@ -118,7 +104,6 @@ button {
 .confirm-btn { display: flex; justify-content: center; align-items: center; background: #222; border: 1px solid #555; color: #999; padding: 8px 30px; font-size: 1.1em; font-family: 'Cinzel', serif; cursor: default; transition: all 0.2s; letter-spacing: 2px; }
 .confirm-btn:not(:disabled) { background: #d4af37; border-color: #fff; color: #000; box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); cursor: pointer; transform: scale(1.1); }
 
-/* === IMMUNITY TOP CONTAINER === */
 .immunity-top-container {
     position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
     display: flex; flex-direction: column; align-items: center; z-index: 50; gap: 5px;
@@ -148,12 +133,7 @@ button {
 .ladder-step { font-family: 'Segoe UI', sans-serif; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 2px; text-transform: uppercase; opacity: 0.3; width: 100%; box-sizing: border-box; transition: 0.3s; }
 .step-blue { text-align: left; color: #4facfe; border-left: 2px solid #4facfe; }
 .step-red { text-align: right; color: #ff6b6b; border-right: 2px solid #ff6b6b; }
-
-.step-immunity { 
-    color: #50b36b; 
-    border-color: #50b36b; 
-} 
-
+.step-immunity { color: #50b36b; border-color: #50b36b; } 
 .step-active { opacity: 1; background: #222; color: #fff !important; border-color: #fff !important; transform: scale(1.1); }
 .step-done { text-decoration: line-through; opacity: 0.15; }
 
