@@ -89,6 +89,11 @@
 
         <div class="controls-area">
             <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>SELECT</button>
+            
+            <div class="filter-group">
+                <input type="checkbox" id="hide-unavailable-cb" onchange="toggleHideUnavailable()">
+                <label for="hide-unavailable-cb">Hide Unavailable</label>
+            </div>
         </div>
 
         <div class="char-pool" id="char-pool-container"></div>
@@ -176,6 +181,17 @@
             });
         }
         
+        // --- FILTER FUNCTION ---
+        function toggleHideUnavailable() {
+            const cb = document.getElementById('hide-unavailable-cb');
+            const container = document.getElementById('char-pool-container');
+            if(cb.checked) {
+                container.classList.add('hide-active');
+            } else {
+                container.classList.remove('hide-active');
+            }
+        }
+
         function renderRows() {
             const container = document.getElementById('char-pool-container');
             container.innerHTML = '';
@@ -343,16 +359,12 @@
                 });
             };
 
-            // Заполняем баны
             fill('blue-bans', state.bans.filter(b => b.team === 'blue'), blueBanSteps, true);
             fill('red-bans', state.bans.filter(b => b.team === 'red'), redBanSteps, true);
             
-            // Логика распределения пиков по рядам
             if (currentDraftType === 'generals_2') {
-                // Generals 2: Все пики (3 шт) в верхний ряд
                 fill('blue-picks-1', state.bluePicks, bluePickSteps, false);
-                fill('blue-picks-2', [], [], false); // Нижний ряд пустой
-                
+                fill('blue-picks-2', [], [], false); 
                 fill('red-picks-1', state.redPicks, redPickSteps, false);
                 fill('red-picks-2', [], [], false);
             } else if (currentDraftType === 'classic') {
@@ -361,10 +373,8 @@
                 fill('red-picks-1', state.redPicks, redPickSteps, false);
                 fill('red-picks-2', [], [], false);
             } else {
-                // GITCG (9 пиков): Сплит 5 / 4
                 fill('blue-picks-1', state.bluePicks.slice(0, 5), bluePickSteps.slice(0, 5), false);
                 fill('blue-picks-2', state.bluePicks.slice(5, 9), bluePickSteps.slice(5, 9), false);
-                
                 fill('red-picks-1', state.redPicks.slice(0, 5), redPickSteps.slice(0, 5), false);
                 fill('red-picks-2', state.redPicks.slice(5, 9), redPickSteps.slice(5, 9), false);
             }
