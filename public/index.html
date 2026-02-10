@@ -44,12 +44,14 @@
                 <div id="room-display" onclick="copyRoomCode()" title="Click to copy room code">CODE: ----</div>
                 <span id="copy-toast">Code Copied!</span>
             </div>
-            <div class="reserve-timer blue-res"><span id="blue-res">5:00</span></div>
+            <div class="reserve-timer blue-res"><span id="blue-res">3:00</span></div>
             <div id="status">Waiting...</div>
-            <div class="reserve-timer red-res"><span id="red-res">5:00</span></div>
+            <div class="reserve-timer red-res"><span id="red-res">3:00</span></div>
         </div>
 
         <div class="draft-area">
+            <button id="skip-btn" onclick="skipTurn()">SKIP TURN</button>
+
             <div id="immunity-top-display" class="immunity-top-container" style="display: none;">
                 <div class="im-label">IMMUNE</div>
                 <div class="im-row" id="immunity-icons-row"></div>
@@ -57,7 +59,7 @@
 
             <div class="team-side blue-side">
                 <div class="player-header">
-                    <div id="blue-timer" class="turn-timer">60</div>
+                    <div id="blue-timer" class="turn-timer">45</div>
                     <h2 id="blue-name-display">PLAYER 1</h2>
                     <div id="blue-ready-switch" class="ready-switch" onclick="toggleReady('blue')">
                         <div class="switch-circle"></div>
@@ -79,7 +81,7 @@
                         <div class="switch-circle"></div>
                     </div>
                     <h2 id="red-name-display">PLAYER 2</h2>
-                    <div id="red-timer" class="turn-timer">60</div>
+                    <div id="red-timer" class="turn-timer">45</div>
                 </div>
                 <div class="ban-row" id="red-bans"></div>
                 <div class="pick-row" id="red-picks-1"></div>
@@ -157,8 +159,9 @@
         socket.on('timer_tick', (data) => {
             const t = typeof data === 'object' ? data.main : data;
             const b = document.getElementById('blue-timer'), r = document.getElementById('red-timer');
-            if(activeTeam==='blue') { b.innerText=t; r.innerText="60"; b.style.color=t<10?'#ff5555':'#4facfe'; }
-            else { r.innerText=t; b.innerText="60"; r.style.color=t<10?'#ff5555':'#ff6b6b'; }
+            // Обновляем таймеры. Стандартно показываем 45 (или текущее)
+            if(activeTeam==='blue') { b.innerText=t; r.innerText="45"; b.style.color=t<10?'#ff5555':'#4facfe'; }
+            else { r.innerText=t; b.innerText="45"; r.style.color=t<10?'#ff5555':'#ff6b6b'; }
             if(typeof data === 'object') {
                 document.getElementById('blue-res').innerText = formatTime(data.blueReserve);
                 document.getElementById('red-res').innerText = formatTime(data.redReserve);
@@ -174,6 +177,12 @@
                 toast.classList.add('show');
                 setTimeout(() => { toast.classList.remove('show'); }, 2000);
             });
+        }
+        
+        function skipTurn() {
+            if(currentRoom) {
+                socket.emit('skip_action', currentRoom);
+            }
         }
         
         function renderRows() {
@@ -232,13 +241,16 @@
             row.innerHTML = '';
             const bans = state.immunityBans || [];
             const picks = state.immunityPool || [];
-            const slots = [ { id: bans[0], type: 'ban' }, { id: picks[0], type: 'pick' }, { id: picks[1], type: 'pick' }, { id: bans[1], type: 'ban' } ];
+            const slots = [ { val: bans[0], type: 'ban' }, { val: picks[0], type: 'pick' }, { val: picks[1], type: 'pick' }, { val: bans[1], type: 'ban' } ];
             slots.forEach(slot => {
                 const div = document.createElement('div');
                 div.className = `im-icon im-${slot.type}`;
-                if (slot.id) {
+                if (slot.val === 'skipped') {
+                    div.innerHTML = `<span style="color:#aaa; font-size:20px; line-height:36px; display:block; text-align:center;">✖</span>`;
+                    div.style.background = '#222';
+                } else if (slot.val) {
                     let all = []; Object.values(charsData).forEach(a => all.push(...a));
-                    const char = all.find(c => c.id === slot.id);
+                    const char = all.find(c => c.id === slot.val);
                     if(char) div.innerHTML = `<img src="${char.img}">`;
                 } else div.classList.add('im-empty');
                 row.appendChild(div);
@@ -263,6 +275,22 @@
 
             updateImmunityTop(state);
 
+            // Кнопка SKIP
+            const skipBtn = document.getElementById('skip-btn');
+            const isMyTurn = (myRole === state.currentTeam);
+            
+            if (state.immunityPhaseActive && isMyTurn) {
+                skipBtn.style.display = 'block';
+                skipBtn.className = ''; 
+                if (state.currentTeam === 'blue') {
+                    skipBtn.classList.add('skip-pos-right');
+                } else {
+                    skipBtn.classList.add('skip-pos-left');
+                }
+            } else {
+                skipBtn.style.display = 'none';
+            }
+
             const idx = state.stepIndex - 1;
             const currentSchema = DRAFT_RULES[currentDraftType];
             const len = currentSchema.length;
@@ -286,11 +314,14 @@
             state.bans.forEach(b => document.getElementById(`char-${b.id}`)?.classList.add('disabled'));
             [...state.bluePicks, ...state.redPicks].forEach(id => document.getElementById(`char-${id}`)?.classList.add('disabled'));
             if(state.immunityPhaseActive) {
-                [...state.immunityBans, ...state.immunityPool].forEach(id => document.getElementById(`char-${id}`)?.classList.add('disabled'));
+                [...state.immunityBans, ...state.immunityPool].forEach(id => {
+                    if (id !== 'skipped') document.getElementById(`char-${id}`)?.classList.add('disabled');
+                });
             } else {
                 const step = currentSchema[idx];
                 const isImmunityTurn = step && step.immunity;
                 state.immunityPool.forEach(id => {
+                    if(id === 'skipped') return;
                     const el = document.getElementById(`char-${id}`);
                     if(!el) return;
                     if(state.currentAction === 'ban') el.classList.add('disabled');
@@ -330,6 +361,12 @@
                     slot.className = 'slot-circle';
                     if (isBan) slot.classList.add('slot-ban');
                     if (step.immunity) slot.classList.add('slot-immunity-pick');
+                    
+                    // Логика подсветки текущего активного слота
+                    if (!state.immunityPhaseActive && state.gameStarted && 
+                        step.num === (state.stepIndex + 1)) {
+                        slot.classList.add('active-slot');
+                    }
 
                     let charId = null;
                     if (items[i]) charId = typeof items[i] === 'object' ? items[i].id : items[i];
@@ -343,16 +380,12 @@
                 });
             };
 
-            // Заполняем баны
             fill('blue-bans', state.bans.filter(b => b.team === 'blue'), blueBanSteps, true);
             fill('red-bans', state.bans.filter(b => b.team === 'red'), redBanSteps, true);
             
-            // Логика распределения пиков по рядам
             if (currentDraftType === 'generals_2') {
-                // Generals 2: Все пики (3 шт) в верхний ряд
                 fill('blue-picks-1', state.bluePicks, bluePickSteps, false);
-                fill('blue-picks-2', [], [], false); // Нижний ряд пустой
-                
+                fill('blue-picks-2', [], [], false); 
                 fill('red-picks-1', state.redPicks, redPickSteps, false);
                 fill('red-picks-2', [], [], false);
             } else if (currentDraftType === 'classic') {
@@ -361,10 +394,8 @@
                 fill('red-picks-1', state.redPicks, redPickSteps, false);
                 fill('red-picks-2', [], [], false);
             } else {
-                // GITCG (9 пиков): Сплит 5 / 4
                 fill('blue-picks-1', state.bluePicks.slice(0, 5), bluePickSteps.slice(0, 5), false);
                 fill('blue-picks-2', state.bluePicks.slice(5, 9), bluePickSteps.slice(5, 9), false);
-                
                 fill('red-picks-1', state.redPicks.slice(0, 5), redPickSteps.slice(0, 5), false);
                 fill('red-picks-2', state.redPicks.slice(5, 9), redPickSteps.slice(5, 9), false);
             }
