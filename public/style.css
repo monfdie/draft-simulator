@@ -4,6 +4,7 @@
 
 body { 
     background: #0b0d17;
+    /* Изменили центральный цвет на более светлый (#2b3452) для эффекта подсветки */
     background-image: radial-gradient(circle at 50% 30%, #2b3452 0%, #080a12 85%);
     color: #ece5d8;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -51,52 +52,6 @@ button {
     height: 6vh; display: flex; gap: 30px; align-items: center; justify-content: center; 
     background: rgba(10, 12, 20, 0.95); border-bottom: 2px solid #222; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 30; flex-shrink: 0; 
 }
-
-/* === COIN BUTTON STYLE === */
-.btn-coin {
-    background: transparent;
-    border: 1px solid #d4af37;
-    color: #d4af37;
-    padding: 4px 12px;
-    font-size: 14px;
-    font-family: 'Segoe UI', sans-serif;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin: 0;
-}
-.btn-coin:hover {
-    background: rgba(212, 175, 55, 0.1);
-    box-shadow: 0 0 10px #d4af37;
-    transform: scale(1.05);
-}
-.btn-coin:active { transform: scale(0.95); }
-
-/* === COIN OVERLAY === */
-#coin-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000;
-    opacity: 0; pointer-events: none; transition: opacity 0.3s;
-}
-#coin-overlay.show { opacity: 1; pointer-events: auto; }
-.coin-card {
-    background: rgba(15, 19, 31, 0.95);
-    border: 2px solid #4facfe;
-    padding: 40px 60px;
-    text-align: center;
-    border-radius: 10px;
-    box-shadow: 0 0 50px rgba(0,0,0,0.8);
-    transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-#coin-overlay.show .coin-card { transform: scale(1); }
-.coin-title { font-family: 'Cinzel', serif; font-size: 1.2em; color: #888; letter-spacing: 4px; margin-bottom: 10px; }
-.coin-winner { font-family: 'Cinzel', serif; font-size: 3em; font-weight: bold; margin-bottom: 10px; text-shadow: 0 0 20px currentColor; }
-.coin-subtext { font-family: 'Segoe UI', sans-serif; font-size: 0.9em; color: #555; letter-spacing: 2px; text-transform: uppercase; }
-
 .reserve-timer { font-size: 18px; font-weight: bold; font-family: 'Cinzel', serif; }
 .blue-res { color: #4facfe; } .red-res { color: #ff6b6b; }
 #status { font-size: 16px; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
@@ -108,6 +63,7 @@ button {
 .draft-area { 
     height: 38vh; display: flex; justify-content: center; gap: 80px; padding: 10px 50px; 
     align-items: center; flex-shrink: 0; position: relative; 
+    /* Дополнительное мягкое свечение фона в зоне пиков */
     background: radial-gradient(ellipse at center, rgba(60, 80, 120, 0.15) 0%, transparent 70%);
 }
 .team-side { width: 45%; display: flex; flex-direction: column; align-items: center; }
