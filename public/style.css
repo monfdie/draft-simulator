@@ -4,7 +4,8 @@
 
 body { 
     background: #0b0d17;
-    background-image: radial-gradient(circle at 50% 30%, #1a1f35 0%, #080a12 80%);
+    /* Изменили центральный цвет градиента на более светлый (#2b3452) */
+    background-image: radial-gradient(circle at 50% 30%, #2b3452 0%, #080a12 85%);
     color: #ece5d8;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     margin: 0; 
@@ -62,6 +63,8 @@ button {
 .draft-area { 
     height: 38vh; display: flex; justify-content: center; gap: 80px; padding: 10px 50px; 
     align-items: center; flex-shrink: 0; position: relative; 
+    /* Дополнительное легкое свечение в зоне пиков */
+    background: radial-gradient(ellipse at center, rgba(60, 80, 120, 0.15) 0%, transparent 70%);
 }
 .team-side { width: 45%; display: flex; flex-direction: column; align-items: center; }
 .center-axis { width: 10%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 15px; gap: 80px; opacity: 0.6; }
@@ -103,14 +106,6 @@ button {
 .controls-area { display: flex; justify-content: center; align-items: center; height: 40px; position: relative; z-index: 20; margin-top: -20px; margin-bottom: 10px; gap: 20px; }
 .confirm-btn { display: flex; justify-content: center; align-items: center; background: #222; border: 1px solid #555; color: #999; padding: 8px 30px; font-size: 1.1em; font-family: 'Cinzel', serif; cursor: default; transition: all 0.2s; letter-spacing: 2px; }
 .confirm-btn:not(:disabled) { background: #d4af37; border-color: #fff; color: #000; box-shadow: 0 0 20px rgba(212, 175, 55, 0.5); cursor: pointer; transform: scale(1.1); }
-
-/* Filter styles */
-.filter-group {
-    display: flex; align-items: center; gap: 8px;
-    font-family: 'Segoe UI', sans-serif; font-size: 14px; color: #8da4c4;
-}
-.filter-group input { width: auto; margin: 0; cursor: pointer; }
-.filter-group label { cursor: pointer; }
 
 .immunity-top-container {
     position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
@@ -159,16 +154,93 @@ button {
 .selected-pending { border-color: #d4af37 !important; box-shadow: 0 0 15px rgba(212, 175, 55, 0.5) !important; transform: scale(1.1); z-index: 20; }
 .selected-pending img { opacity: 1; }
 
-.immunity-highlight { 
-    border-color: #50b36b !important; 
-    box-shadow: 0 0 10px rgba(80, 179, 107, 0.6) !important;
-    opacity: 1 !important; 
-    filter: none !important; 
-}
-.disabled { opacity: 0.15; filter: grayscale(100%); pointer-events: none; border-color: transparent; }
-
 /* === The Magic Hiding Logic === */
-/* Когда у контейнера есть класс hide-active, все недоступные элементы исчезают */
 .char-pool.hide-active .char-option.disabled {
     display: none;
+}
+
+/* === Custom Bottom Right Floating Checkbox === */
+.filter-container {
+    position: fixed; /* Фиксируем на экране */
+    bottom: 30px;    /* Отступ снизу */
+    right: 40px;     /* Отступ справа */
+    z-index: 100;    /* Поверх всего */
+}
+
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-family: 'Cinzel', serif; /* Используем основной "игровой" шрифт */
+    font-size: 16px;
+    color: #666; /* Неактивный цвет текста */
+    letter-spacing: 2px;
+    transition: all 0.3s;
+    user-select: none;
+}
+
+.custom-checkbox:hover {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Скрываем стандартный инпут */
+.custom-checkbox input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+/* Рисуем свой квадрат */
+.checkmark {
+    position: relative;
+    height: 20px;
+    width: 20px;
+    background-color: rgba(15, 19, 31, 0.8);
+    border: 1px solid #3c4566;
+    border-radius: 2px;
+    transition: all 0.3s;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.custom-checkbox:hover .checkmark {
+    border-color: #4facfe;
+    box-shadow: 0 0 10px rgba(79, 172, 254, 0.4);
+}
+
+/* Состояние "Выбрано" */
+.custom-checkbox input:checked ~ .checkmark {
+    background-color: #1e3c72; /* Темно-синий фон */
+    border-color: #4facfe;
+    box-shadow: 0 0 15px #4facfe;
+}
+
+/* Галочка внутри */
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.custom-checkbox input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.custom-checkbox .checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    filter: drop-shadow(0 0 2px #fff);
+}
+
+.custom-checkbox input:checked ~ .label-text {
+    color: #4facfe;
+    text-shadow: 0 0 10px rgba(79, 172, 254, 0.6);
 }
