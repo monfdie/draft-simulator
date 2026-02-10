@@ -166,7 +166,13 @@
             }
         });
 
-        function formatTime(s) { const m=Math.floor(s/60), sec=s%60; return `${m}:${sec<10?'0':''}${sec}`; }
+        // [ИЗМЕНЕНО] Защита от отрицательных чисел при отображении
+        function formatTime(s) { 
+            if (s < 0) s = 0; 
+            const m=Math.floor(s/60), sec=s%60; 
+            return `${m}:${sec<10?'0':''}${sec}`; 
+        }
+
         function toggleReady(r) { if(myRole===r) socket.emit('player_ready', currentRoom); }
         function copyRoomCode() { 
             if (!currentRoom) return;
@@ -191,11 +197,17 @@
             
             schema.forEach((step, i) => {
                 const d = document.createElement('div');
-                // Логика цветов: step-pick (синий) или step-ban (красный), независимо от команды
-                const colorClass = (step.type === 'pick' || step.type === 'immunity_pick') ? 'step-pick' : 'step-ban';
-                d.className = `ladder-step ${colorClass}`;
                 
-                if(step.immunity) d.classList.add('step-immunity');
+                const sideClass = step.team === 'blue' ? 'step-left' : 'step-right';
+                
+                let colorClass = 'step-pick'; 
+                if (step.type.includes('ban')) {
+                    colorClass = 'step-ban'; 
+                } else if (step.immunity) {
+                    colorClass = 'step-immunity'; 
+                }
+                
+                d.className = `ladder-step ${sideClass} ${colorClass}`;
                 d.id = `step-node-${i}`; d.innerText = `${i+1}. ${step.type}`;
                 ladder.appendChild(d);
             });
@@ -276,20 +288,17 @@
 
             updateImmunityTop(state);
 
-            // Кнопка SKIP - Логика позиционирования
+            // Кнопка SKIP
             const skipBtn = document.getElementById('skip-btn');
             const isMyTurn = (myRole === state.currentTeam);
             
-            // Сбрасываем классы перед установкой новых
             skipBtn.classList.remove('skip-left', 'skip-right');
             
             if (state.immunityPhaseActive && isMyTurn) {
                 skipBtn.style.display = 'block';
-                // Если ходит Blue (Player 1) - кнопка слева
                 if (state.currentTeam === 'blue') {
                     skipBtn.classList.add('skip-left');
                 } else {
-                // Если ходит Red (Player 2) - кнопка справа
                     skipBtn.classList.add('skip-right');
                 }
             } else {
@@ -367,8 +376,6 @@
                     if (isBan) slot.classList.add('slot-ban');
                     if (step.immunity) slot.classList.add('slot-immunity-pick');
                     
-                    // [ИСПРАВЛЕНО] Логика подсветки
-                    // state.stepIndex приходит с сервера уже как (индекс + 1), поэтому убрали +1 здесь
                     if (!state.immunityPhaseActive && state.gameStarted && 
                         step.num === state.stepIndex) {
                         slot.classList.add('active-slot');
