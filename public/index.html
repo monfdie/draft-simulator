@@ -89,14 +89,17 @@
 
         <div class="controls-area">
             <button id="confirm-btn" class="confirm-btn" onclick="confirmSelection()" disabled>SELECT</button>
-            
-            <div class="filter-group">
-                <input type="checkbox" id="hide-unavailable-cb" onchange="toggleHideUnavailable()">
-                <label for="hide-unavailable-cb">Hide Unavailable</label>
             </div>
-        </div>
 
         <div class="char-pool" id="char-pool-container"></div>
+        
+        <div class="filter-container">
+            <label class="custom-checkbox">
+                <input type="checkbox" id="hide-unavailable-cb" onchange="toggleHideUnavailable()">
+                <span class="checkmark"></span>
+                <span class="label-text">HIDE UNAVAILABLE</span>
+            </label>
+        </div>
     </div>
 
     <script>
